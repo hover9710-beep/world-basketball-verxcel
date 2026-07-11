@@ -28,7 +28,8 @@
     overflow:hidden;
     user-select:none;
   }
-  #game{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100vw;}
+  #game{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100vw;
+    padding-bottom:max(10px, env(safe-area-inset-bottom));box-sizing:border-box;}
 
   /* ---- Player panels (P1 top / P2 bottom) ---- */
   .panel{
@@ -37,7 +38,7 @@
     display:flex;flex-direction:column;justify-content:center;gap:0.6dvh;
     min-width:0;min-height:0;
   }
-  .p1{background:linear-gradient(0deg,#1a0f16,#140c12);}
+  .p1{background:linear-gradient(0deg,#1a0f16,#140c12);border-top:1px solid #2a3450;border-bottom:2px solid #2a3450;}
   .p2{background:linear-gradient(180deg,#0f1730,#0c1428);}
 
   .head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -181,12 +182,6 @@
     <div class="word" id="wordP2">READY</div>
     <div class="choices" id="choicesP2"></div>
   </section>
-  <!-- Court -->
-  <div id="courtWrap">
-    <canvas id="court"></canvas>
-    <button id="sndBtn" title="소리 켜기/끄기">🔊</button>
-  </div>
-
   <!-- Player 1 (top, rotated to face across) -->
   <section class="panel p1" id="panelP1">
     <div class="head">
@@ -197,6 +192,12 @@
     <div class="word" id="wordP1">READY</div>
     <div class="choices" id="choicesP1"></div>
   </section>
+  <!-- Court -->
+  <div id="courtWrap">
+    <canvas id="court"></canvas>
+    <button id="sndBtn" title="소리 켜기/끄기">🔊</button>
+  </div>
+
 </div>
 
 <!-- Start overlay -->
@@ -660,7 +661,7 @@ const flashEl = $('flash');
 function showFlash(side,text,team){
   flashEl.textContent = text;
   flashEl.style.color = team==='red' ? '#ff8a97' : '#8fbcff';
-  flashEl.style.top = side==='top' ? '20%' : '76%';
+  flashEl.style.top = side==='top' ? '12%' : '38%';
   flashEl.animate(
     [{opacity:0,transform:'translateX(-50%) scale(.7)'},
      {opacity:1,transform:'translateX(-50%) scale(1.05)'},
@@ -1278,7 +1279,16 @@ async function syncState(){
 }
 
 /* ============ 부팅 ============ */
-resize(); initPlayers();
+function fitHeight(){
+  const vv=window.visualViewport;
+  const h=Math.min(window.innerHeight||1e9, vv?vv.height:1e9);
+  if(h && h<1e9) $('game').style.height=h+'px';
+  resize();
+}
+window.addEventListener('resize', fitHeight);
+if(window.visualViewport) window.visualViewport.addEventListener('resize', fitHeight);
+fitHeight();
+initPlayers();
 looseBallNear(CT.cx, CT.midY);
 loadWords();
 requestAnimationFrame(loop);
