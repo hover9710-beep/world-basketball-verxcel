@@ -2,11 +2,14 @@
 """단어 농구 온라인 대전 서버 (Flask)
 방 생성 -> 4자리 코드 -> 상대 입장 -> 2초 폴링으로 점수 동기화
 """
+import os
 import random
 import time
 from flask import Flask, jsonify, request, send_from_directory
 
-app = Flask(__name__, static_folder="static")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__)
 
 ROOMS = {}          # {code: {ts, p:{1:{score,ready},2:{score,ready}}, winner}}
 ROOM_TTL = 7200     # 2시간 지난 방 정리
@@ -22,7 +25,10 @@ def _cleanup():
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "game.html")
+    # index.html 우선, 없으면 static/game.html
+    if os.path.exists(os.path.join(BASE_DIR, "index.html")):
+        return send_from_directory(BASE_DIR, "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "static"), "game.html")
 
 
 @app.route("/api/room", methods=["POST"])
