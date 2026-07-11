@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>단어 농구 · 2인 대전</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --court:#101a33;
+    --line:#4fd1ff;
+    --blue:#2f7bff;
+    --red:#ff4d5e;
+    --orange:#ff7a1a;
+    --ink:#eaf1ff;
+    --dim:#8aa0c8;
+    --ok:#37e39b;
+    --bad:#ff5a6e;
+    --panelP1:#141d3a;
+    --panelP2:#3a1420;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden;
+    user-select:none;
+  }
+  #game{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100vw;}
+
+  /* ---- Player panels (P1 top / P2 bottom) ---- */
+  .panel{
+    flex:0 0 auto;
+    padding:0.6dvh 10px;
+    display:flex;flex-direction:column;justify-content:center;gap:0.6dvh;
+    min-width:0;min-height:0;
+  }
+  .p1{background:linear-gradient(0deg,#1a0f16,#140c12);}
+  .p2{background:linear-gradient(180deg,#0f1730,#0c1428);}
+
+  .head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .who{font-weight:900;letter-spacing:.5px;font-size:clamp(10px,1.5dvh,13px);display:flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px currentColor;}
+  .p2 .dot{color:var(--blue);background:var(--blue);}
+  .p1 .dot{color:var(--red);background:var(--red);}
+  .score{
+    font-family:"Arial Black",Impact,system-ui,sans-serif;
+    font-weight:900;font-size:clamp(15px,2.4dvh,22px);line-height:1;
+    letter-spacing:1px;
+  }
+  .p2 .score{color:#bcd7ff;}
+  .p1 .score{color:#ffc3cc;}
+  .streak{font-size:11px;color:var(--dim);font-weight:700;min-width:70px;text-align:right;}
+
+  .word{
+    font-family:"Arial Black",Impact,system-ui,sans-serif;
+    font-weight:900;
+    font-size:clamp(16px,3.2dvh,26px);
+    text-align:center;
+    letter-spacing:1px;
+    padding:0 4px;
+    line-height:1.05;
+  }
+  .choices{
+    display:grid;grid-template-columns:1fr 1fr;gap:clamp(4px,0.8dvh,7px);
+  }
+  .choice{
+    background:#0c1428;
+    border:2px solid #26355c;
+    color:var(--ink);
+    border-radius:12px;
+    padding:clamp(5px,1.1dvh,9px) 6px;
+    font-size:clamp(12px,1.9dvh,15px);font-weight:800;
+    text-align:center;
+    cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    transition:transform .05s, background .12s, border-color .12s;
+  }
+  .choice:active{transform:scale(.96);}
+  .p2 .choice:hover{border-color:var(--blue);}
+  .p1 .choice:hover{border-color:var(--red);}
+  .choice.ok{background:rgba(55,227,155,.22);border-color:var(--ok);color:#c8ffe6;}
+  .choice.bad{background:rgba(255,90,110,.2);border-color:var(--bad);color:#ffd2d8;}
+  .lock{pointer-events:none;opacity:.98;}
+
+  /* ---- Court ---- */
+  #courtWrap{flex:1 1 auto;position:relative;min-height:110px;}
+  #court{display:block;width:100%;height:100%;}
+  .tag{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-family:"Arial Black",Impact,sans-serif;font-size:12px;letter-spacing:3px;
+    color:#33507f;font-weight:900;pointer-events:none;
+  }
+
+  /* ---- Overlays ---- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(6,10,22,.92);
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    gap:18px;padding:24px;text-align:center;z-index:10;
+  }
+  .overlay.hide{display:none;} #joinBox.hide,#waitMsg.hide{display:none;}
+  .title{
+    font-family:"Arial Black",Impact,sans-serif;
+    font-size:clamp(34px,10vw,64px);font-weight:900;letter-spacing:2px;
+    background:linear-gradient(90deg,var(--orange),#ffd08a);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    line-height:1;
+  }
+  .sub{color:var(--dim);max-width:420px;font-size:14px;line-height:1.6;}
+  .btn{
+    background:var(--orange);color:#160a00;border:none;border-radius:999px;
+    padding:16px 40px;font-size:20px;font-weight:900;letter-spacing:1px;cursor:pointer;
+    box-shadow:0 10px 30px rgba(255,122,26,.35);
+  }
+  .btn:active{transform:scale(.97);}
+  .btn2{
+    background:transparent;color:var(--dim);border:2px solid #2a3a60;border-radius:999px;
+    padding:10px 26px;font-size:15px;font-weight:800;cursor:pointer;
+  }
+  /* ---- 단어 관리 ---- */
+  .wm{
+    width:min(92vw,420px);max-height:86dvh;display:flex;flex-direction:column;gap:10px;
+    background:#0e1526;border:1px solid #26355c;border-radius:18px;padding:16px;text-align:left;
+  }
+  .wm-title{font-weight:900;font-size:20px;letter-spacing:1px;}
+  .wm-add{display:flex;gap:6px;}
+  .wm-add input{
+    flex:1 1 0;min-width:0;background:#0a101f;border:2px solid #26355c;border-radius:10px;
+    color:var(--ink);padding:10px;font-size:15px;font-weight:700;outline:none;
+  }
+  .wm-add input:focus{border-color:var(--orange);}
+  .wm-add button{
+    background:var(--orange);border:none;border-radius:10px;color:#160a00;
+    font-weight:900;font-size:15px;padding:0 16px;cursor:pointer;
+  }
+  .wm-toggle{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px;font-weight:700;}
+  .wm-toggle input{width:17px;height:17px;accent-color:var(--orange);}
+  .wm-list{
+    flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:6px;
+    min-height:60px;max-height:38dvh;
+  }
+  .wm-row{
+    display:flex;align-items:center;gap:8px;background:#0a101f;
+    border:1px solid #1d2b4d;border-radius:10px;padding:8px 10px;
+  }
+  .wm-row .w{font-weight:900;flex:0 0 auto;}
+  .wm-row .m{color:var(--dim);flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wm-row .del{
+    background:none;border:none;color:var(--bad);font-size:18px;font-weight:900;cursor:pointer;padding:2px 6px;
+  }
+  .wm-empty{color:var(--dim);font-size:13px;text-align:center;padding:14px 0;}
+  .wm-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .wm-foot .btn{padding:10px 26px;font-size:16px;}
+  #wordCount{color:var(--dim);font-size:13px;font-weight:700;}
+  .winline{font-size:20px;font-weight:800;}
+  .rules{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;color:var(--dim);font-size:13px;}
+  .rules b{color:var(--ink);}
+  .credit{color:#5b6c8f;font-size:11px;max-width:420px;line-height:1.5;}
+  #sndBtn{
+    position:absolute;right:6px;bottom:6px;z-index:5;
+    background:rgba(9,12,22,.75);border:1px solid rgba(255,255,255,.18);
+    color:#fff;border-radius:999px;width:34px;height:34px;font-size:16px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .flash{position:fixed;left:50%;transform:translateX(-50%);
+    font-family:"Arial Black",Impact,sans-serif;font-weight:900;letter-spacing:2px;
+    pointer-events:none;z-index:9;opacity:0;font-size:24px;}
+</style>
+</head>
+<body>
+<div id="game">
+  <!-- Player 2 (bottom, normal orientation) -->
+  <section class="panel p2" id="panelP2">
+    <div class="head">
+      <div class="who"><span class="dot"></span>PLAYER 2</div>
+      <div class="score" id="scoreP2">0</div>
+      <div class="streak" id="streakP2"></div>
+    </div>
+    <div class="word" id="wordP2">READY</div>
+    <div class="choices" id="choicesP2"></div>
+  </section>
+  <!-- Court -->
+  <div id="courtWrap">
+    <canvas id="court"></canvas>
+    <button id="sndBtn" title="소리 켜기/끄기">🔊</button>
+  </div>
+
+  <!-- Player 1 (top, rotated to face across) -->
+  <section class="panel p1" id="panelP1">
+    <div class="head">
+      <div class="who"><span class="dot"></span>PLAYER 1</div>
+      <div class="score" id="scoreP1">0</div>
+      <div class="streak" id="streakP1"></div>
+    </div>
+    <div class="word" id="wordP1">READY</div>
+    <div class="choices" id="choicesP1"></div>
+  </section>
+</div>
+
+<!-- Start overlay -->
+<div class="overlay" id="startOverlay">
+  <div class="title">단어 농구</div>
+  <div class="sub">영어 단어의 뜻을 맞히면 슛이 골대로 들어갑니다.<br>위(P1)·아래(P2)로 나뉘어 두 명이 대결하세요.</div>
+  <div class="credit">단어 출처: MiMi VOCA 최다빈출 영단어 ★4~5 (함정민 저, 미미에듀북스) · 개인 학습용</div>
+  <div class="rules">
+    <div>정답 <b>+2점</b></div>
+    <div>3연속 정답 → 다음 슛 <b>3점</b></div>
+    <div>먼저 <b>21점</b>이면 승리</div>
+  </div>
+  <button class="btn" id="startBtn">같은 폰으로 대결</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn2" id="makeRoomBtn">🌐 방 만들기</button>
+    <button class="btn2" id="joinRoomBtn">🔑 방 참가</button>
+    <button class="btn2" id="manageBtn">📝 단어 관리</button>
+  </div>
+  <div id="joinBox" class="hide" style="display:flex;gap:6px;">
+    <input id="roomCode" inputmode="numeric" maxlength="4" placeholder="방 코드 4자리"
+      style="width:140px;background:#0a101f;border:2px solid #26355c;border-radius:10px;color:#eaf1ff;padding:12px;font-size:18px;font-weight:800;text-align:center;outline:none;">
+    <button class="btn" id="joinGo" style="padding:12px 22px;font-size:16px;">입장</button>
+  </div>
+  <div id="waitMsg" class="hide" style="color:#eaf1ff;font-weight:800;line-height:1.7;"></div>
+</div>
+
+<!-- Word manager overlay -->
+<div class="overlay hide" id="wordOverlay">
+  <div class="wm">
+    <div class="wm-title">내 단어장</div>
+    <div class="wm-add">
+      <input id="wInput" placeholder="영어 단어" autocomplete="off">
+      <input id="mInput" placeholder="뜻 (한국어)" autocomplete="off">
+      <button id="addWordBtn">추가</button>
+    </div>
+    <label class="wm-toggle">
+      <input type="checkbox" id="customOnly"> 내 단어만으로 게임하기 (4개 이상 필요)
+    </label>
+    <div class="wm-list" id="wordList"></div>
+    <div class="wm-foot">
+      <span id="wordCount"></span>
+      <button class="btn" id="wmClose">완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div class="overlay hide" id="winOverlay">
+  <div class="title" id="winTitle">WIN</div>
+  <div class="winline" id="winScore"></div>
+  <button class="btn" id="againBtn">다시 하기</button>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+/* ============ 수능 어휘 데이터 ============ */
+const VOCAB = [
+  ["perspective","관점"],["fundamental","근본적인"],["cognitive","인지의"],["phenomenon","현상"],
+  ["address","대처하다"],["generate","생성하다"],["perception","지각"],["demonstrate","입증하다"],
+  ["release","방출하다"],["conduct","수행하다"],["perceive","인지하다"],["potential","잠재적인"],
+  ["bias","편향"],["conflict","갈등"],["context","맥락"],["feature","특징"],
+  ["tendency","경향"],["determine","결정하다"],["relevant","관련된"],["outcome","결과"],
+  ["alternative","대안"],["reinforce","강화하다"],["aspect","측면"],["encounter","마주치다"],
+  ["discipline","규율"],["property","속성"],["predator","포식자"],["represent","대표하다"],
+  ["interpret","해석하다"],["exceed","초과하다"],["crucial","매우 중요한"],["insight","통찰력"],
+  ["external","외부의"],["domain","영역"],["capacity","능력"],["contemporary","현대의"],
+  ["mechanism","기제"],["figure","수치"],["identify","식별하다"],["significant","중요한"],
+  ["immediate","즉각적인"],["capture","포착하다"],["recognize","인식하다"],["trigger","촉발하다"],
+  ["arise","발생하다"],["notion","관념"],["engage in","~에 참여하다"],["assume","가정하다"],
+  ["hypothesis","가설"],["assessment","평가"],["distribution","분배"],["variation","변이"],
+  ["extend","연장하다"],["intervention","개입"],["access","접근"],["implement","시행하다"],
+  ["appropriate","적절한"],["dimension","차원"],["foster","조성하다"],["strategy","전략"],
+  ["involve","포함하다"],["enhance","향상시키다"],["initial","초기의"],["device","장치"],
+  ["urban","도시의"],["promote","장려하다"],["spatial","공간의"],["assign","할당하다"],
+  ["barrier","장벽"],["convention","관습"],["application","적용"],["organism","유기체"],
+  ["maintain","유지하다"],["misleading","오도하는"],["initially","처음에는"],["overcome","극복하다"],
+  ["sensory","감각의"],["representation","표상"],["assess","평가하다"],["objective","객관적인"],
+  ["statement","진술"],["inspire","영감을 주다"],["incorporate","통합하다"],["foundation","토대"],
+  ["component","구성 요소"],["note","주목하다"],["rational","이성적인"],["embody","구현하다"],
+  ["convey","전달하다"],["alter","바꾸다"],["function","기능"],["reflect","반영하다"],
+  ["diminish","줄어들다"],["theoretical","이론적인"],["procedure","절차"],["sufficient","충분한"],
+  ["constitute","구성하다"],["convince","확신시키다"],["tension","긴장"],["assumption","가정"],
+  ["measure","측정하다"],["accurate","정확한"],["preserve","보존하다"],["imply","암시하다"],
+  ["cultivate","기르다"],["accompany","동반하다"],["consequence","결과"],["dominate","지배하다"],
+  ["extensive","광범위한"],["define","정의하다"],["diverse","다양한"],["contract","계약"],
+  ["accumulate","축적하다"],["pursuit","추구"],["adaptation","적응"],["invariably","언제나"],
+  ["institution","기관"],["relative","상대적인"],["flourish","번창하다"],["resident","거주자"],
+  ["equipment","장비"],["struggle","고군분투하다"],["grant","수여하다"],["awareness","자각"],
+  ["observe","관찰하다"],["decline","감소하다"],["conventional","관습적인"],["flexibility","유연성"],
+  ["primary","주요한"],["replace","교체하다"],["contribute to","~에 기여하다"],["obtain","얻다"],
+  ["primarily","주로"],["specific","특정한"],["reputation","평판"],["advocate","옹호하다"],
+  ["principle","원칙"],["distress","괴로움"],["original","원래의"],["eliminate","제거하다"],
+  ["inhabit","서식하다"],["maintenance","유지 보수"],["underlying","기저에 있는"],["facilitate","촉진하다"],
+  ["yield","산출하다"],["evolve","진화하다"],["numerous","수많은"],["accommodate","수용하다"],
+  ["modify","수정하다"],["distinct","별개의"],["regardless of","~와 상관없이"],["subject","피실험자"],
+  ["performance","수행"],["region","지역"],["overwhelm","압도하다"],["dynamic","역동적인"],
+  ["status","지위"],["distinction","구별"],["concept","개념"],["expertise","전문 지식"],
+  ["arrangement","배열"],["authority","권위"],["era","시대"],["shift","이동시키다"],
+  ["substitute","대체물"],["additional","추가적인"],["explore","탐구하다"],["nutrient","영양분"],
+  ["motivation","동기"],["establish","확립하다"],["complexity","복잡성"],["appreciate","감상하다"],
+  ["guarantee","보장하다"],["contribution","기여"],["interfere with","~을 방해하다"],["regulate","규제하다"],
+  ["commitment","헌신"],["illusion","착각"],["sophisticated","정교한"],["launch","출시하다"],
+  ["domestic","국내의"],["manipulate","조작하다"],["association","연관"],["label","라벨을 붙이다"],
+  ["emerge","출현하다"],["evaluate","평가하다"],["attribute","~탓으로 돌리다"],["conscious","의식적인"],
+  ["impose","부과하다"],["ingredient","성분"],["exclusively","전적으로"],["agent","대리인"],
+  ["inherent","내재적인"],["grasp","파악하다"],["stimulus","자극"],["reverse","뒤집다"],
+  ["relatively","비교적"],["expand","확대하다"],["implication","함축"],["cue","단서"],
+  ["engagement","참여"],["probability","확률"],["collective","집단적인"],["impulse","충동"],
+  ["construct","구축하다"],["massive","거대한"],["circumstance","상황"],["landscape","경관"],
+  ["transform","변화시키다"],["serve","제공하다"],["document","기록하다"],["considerable","상당한"],
+  ["refer to","~을 언급하다"],["illustrate","예증하다"],["budget","예산"],["literally","말 그대로"],
+  ["identify with","~과 동일시하다"],["emphasis","강조"],["reduction","감소"],["consciousness","의식"],
+  ["ultimately","궁극적으로"],["sustainable","지속 가능한"],["discrimination","차별"],["boundary","경계"],
+  ["security","보안"],["moral","도덕적인"],["coordination","협응"],["previously","이전에"],
+  ["compromise","타협하다"],["secondary","부차적인"],["entity","실체"],["precisely","정밀하게"],
+  ["composition","구성물"],["proceed","진행되다"],["incentive","유인책"],["trait","특성"],
+  ["acquisition","습득"],["consistent","일관된"],["competitive","경쟁의"],["physiological","생리적인"],
+  ["account","설명"],["overall","전반적으로"],["submission","제출"],["evolutionary","진화의"],
+  ["precision","정밀성"],["complete","완료하다"],["practice","관행"],["consume","소비하다"],
+  ["norm","규범"],["embrace","받아들이다"],["essential","필수적인"],["potentially","잠재적으로"],
+  ["virtually","사실상"],["pose","제기하다"],["deliberate","의도적인"],["progress","진전"],
+  ["distribute","분배하다"],["entry","진입"],["recognition","인정"],["inherently","본질적으로"],
+  ["innovation","혁신"],["requirement","필요조건"],["drive","추진력"],["analysis","분석"],
+  ["mediate","중재하다"],["constraint","제약"],["commercial","상업적인"],["constantly","끊임없이"],
+  ["complicated","복잡한"],["exposure","노출"],["accountability","책임성"],["metaphor","은유"],
+  ["retain","보유하다"],["abstract","추상적인"],["emission","배출"],["utilize","활용하다"],
+  ["generation","세대"],["intention","의도"],["territory","영토"],["extract","추출하다"],
+  ["apparent","명백한"],["presumably","짐작건대"],["devise","고안하다"],["extent","정도"],
+  ["universal","보편적인"],["completely","완전히"],["peer","또래"],["observation","관찰"],
+  ["categorize","분류하다"],["transmit","전송하다"],["prominent","두드러진"],["obvious","분명한"],
+  ["subsequent","차후의"],["identification","식별"],["effect","효과"],["accessibility","접근성"],
+  ["evolution","진화"],["predominantly","대개"],["previous","이전의"],["ethical","윤리적인"],
+  ["operation","운영"],["discourse","담론"],["architecture","건축"],["criterion","기준"],
+  ["ancestor","조상"],["present","제시하다"],["virtual","가상의"],["continuous","지속적인"],
+  ["by definition","정의상"],["substance","물질"],["influential","영향력 있는"],["interrupt","중단시키다"],
+  ["claim","주장하다"],["coordinate","조율하다"],["ecological","생태학의"],["encourage","북돋우다"],
+  ["trade-off","상호 절충"],["acknowledge","인정하다"],["reserve","예약하다"],["exhibit","전시하다"],
+  ["typically","전형적으로"],["reasonable","합당한"],["assert","단언하다"],["admission","입장"],
+  ["resolution","해결책"],["constant","일정한"],["anxiety","불안"],["operate","작동하다"],
+  ["existence","존재"],["share","공유하다"],["reproduce","번식하다"],["facility","시설"],
+  ["enterprise","기업"],["management","경영"],["prejudice","편견"],["quantitative","양적인"],
+  ["practical","실용적인"],["obstacle","장애물"],["compose","작곡하다"],["aspiration","열망"],
+  ["benefit","이익"],["complex","복합의"],["mechanical","기계적인"],["institutional","제도적인"],
+  ["appreciation","감사"],["psychologist","심리학자"],["transmission","전파"],["reveal","드러내다"],
+  ["violate","위반하다"],["infant","유아"],["prompt","유도하다"],["signal","신호"],
+  ["subjective","주관적인"],["detect","감지하다"],["adopt","채택하다"],["conclude","결론짓다"],
+  ["employ","고용하다"],["presence","실재"],["approximately","대략"],["eagerly","간절히"],
+  ["introduction","도입"],["estimate","추정하다"],["distinguish","구별하다"],["host","숙주"],
+  ["process","과정"],["fashion","방식"],["draw","이끌다"],["core","핵심"],
+  ["differentiate","차별화하다"],["accurately","정확하게"],["mobility","이동성"],["inevitably","불가피하게"],
+  ["manipulation","조작"],["productivity","생산성"],["exclusion","배제"],["stable","안정된"],
+  ["critical","비판적인"],["interpretation","해석"],["dismiss","일축하다"],["sustain","지속시키다"],
+  ["exhibition","전시회"],["attempt","시도"],["crash","충돌"],["competition","경쟁"],
+  ["attachment","애착"],["anticipate","예상하다"],["invaluable","매우 귀중한"],["occur","일어나다"],
+  ["circulate","순환시키다"],["executive","임원"],["reject","거부하다"],["rare","희귀한"],
+  ["judgment","판단"],["track","추적하다"],["well-being","안녕"],["convert","전환하다"],
+  ["crisis","위기"],["director","감독"],["consciously","의식적으로"],["literature","문헌"],
+  ["accuracy","정확성"],["ensure","확실하게 하다"],["colony","군집"],["distraction","방해 요소"],
+  ["post","게시하다"],["irrelevant","무관한"],["register","등록하다"],["inspiration","영감"],
+  ["physicist","물리학자"],["proposition","명제"],["unprecedented","전례 없는"],["characteristic","특질"],
+  ["reliable","신뢰할 수 있는"],["term","용어"],["permanent","영구적인"],["loyalty","충성심"],
+  ["flexible","유연한"],["crop","농작물"],["concrete","구체적인"],["via","~을 통하여"],
+  ["unique","고유한"],["argument","논쟁"],["cluster","무리"],["apply","적용하다"],
+  ["combination","조합"],["strive","분투하다"],["urge","권고하다"],["substantial","실질적인"],
+  ["infrastructure","기반 시설"],["stimulate","자극하다"],["neural","신경의"],["consistently","일관적으로"],
+  ["spot","발견하다"],["restrict","제한하다"],["persuasive","설득력 있는"],["ethics","윤리학"],
+  ["obligation","의무"],["fiction","허구"],["compelling","강력한"],["immigrant","이민자"],
+  ["genetic","유전적인"],["impact","영향"],["candidate","후보"],["adjust","조정하다"],
+  ["sensible","분별 있는"],["entail","수반하다"],["tackle","처리하다"],["location","위치"],
+  ["passive","수동적인"],["separate","분리하다"],["transition","전환"],["registration","등록"],
+  ["spark","불러일으키다"],["boost","증진하다"],["apparently","겉보기에"],["intellectual","지적인"],
+  ["vulnerable","취약한"],["confront","직면하다"],["venture into","~을 탐험하다"],["induce","유발하다"],
+  ["conserve","아껴 쓰다"],["significantly","상당히"],["overlap","겹치다"],["precise","정밀한"],
+  ["random","무작위적인"],["grab","움켜잡다"],["thereby","그렇게 함으로써"],["current","현재의"],
+  ["respondent","응답자"],["concentration","집중"],["explicit","명시적인"],["cover","다루다"],
+  ["internalize","내면화하다"],["exceptional","예외적인"],["respond","반응하다"],["depression","우울증"],
+  ["ordinary","평범한"],["purely","순전히"],["expose","노출시키다"],["contain","함유하다"],
+  ["efficiency","효율성"],["constructive","건설적인"],["companion","동반자"],["in principle","원칙적으로"],
+  ["structure","구조"],["aesthetics","미학"],["experiment","실험"],["multiple","다수의"],
+  ["visual","시각의"],["framework","틀"],["reward","보상"],["significance","중요성"],
+  ["reservation","예약"],["object","물체"],["adapt","적응하다"],["predict","예측하다"],
+  ["governance","통치"],["justify","정당화하다"],["harvest","수확하다"],["opposite","정반대의"],
+  ["fine-tune","미세하게 조정하다"],["override","무시하다"],["overlook","간과하다"],["negotiation","협상"],
+  ["infer","추론하다"],["treatment","치료"],["at best","기껏해야"],["population","개체 수"],
+  ["linear","선형의"],["material","재료"],["favor","선호하다"],["correlation","상관관계"],
+  ["ritual","의례"],["corporation","회사"],["persist","지속되다"],["discomfort","불편함"],
+  ["elaborate","정교하게 만들다"],["partition","칸막이"],["typical","전형적인"],["cognition","인지"],
+  ["origin","기원"],["conform to","~에 순응하다"],["derive","파생시키다"],["desirable","바람직한"],
+  ["enrich","풍요롭게 하다"],["maximize","최대화하다"],["novel","참신한"],["exclusive","독점적인"],
+  ["duration","지속 기간"],["delay","지연시키다"],["formulate","공식화하다"],["downside","단점"],
+  ["acceptance","수용"],["impression","인상"],["manual","설명서"],["formulation","체계화"],
+  ["survey","설문 조사"],["indicate","나타내다"],["controversial","논란의 여지가 있는"],["criticize","비판하다"],
+  ["regulation","규제"],["in terms of","~의 측면에서"],["dominant","우세한"],["reasoning","추론"],
+  ["intense","강렬한"],["existing","기존의"],["corporate","기업의"],["generalization","일반화"],
+  ["deposit","퇴적물"],["intuition","직관"],["delicate","섬세한"],["destination","목적지"],
+  ["identity","정체성"],["translate","번역하다"],["strict","엄격한"],["lifespan","수명"],
+  ["distinctive","독특한"],["variable","변수"],["autonomy","자율성"],["counterpart","대응물"],
+  ["abandon","버리다"],["as such","그러므로"],["transformation","변신"],["outstanding","뛰어난"],
+  ["informed","정보에 근거한"],["influence","영향을 미치다"],["vehicle","차량"],["infection","감염"],
+];
+
+/* ============ 유틸 ============ */
+const $ = id => document.getElementById(id);
+const rand = n => Math.floor(Math.random()*n);
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=rand(i+1);[a[i],a[j]]=[a[j],a[i]];} return a; };
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ============ 사운드 (Web Audio 합성) ============ */
+let AC=null, soundOn=true;
+function ac(){
+  if(!AC){
+    try{
+      AC=new (window.AudioContext||window.webkitAudioContext)();
+      // 모바일 잠금 해제용 무음 재생
+      const b=AC.createBuffer(1,1,22050);
+      const src=AC.createBufferSource(); src.buffer=b;
+      src.connect(AC.destination); src.start(0);
+    }catch(e){}
+  }
+  if(AC && AC.state==='suspended') AC.resume();
+  return AC;
+}
+// 어떤 터치든 첫 상호작용에서 오디오 활성화
+document.addEventListener('pointerdown', ()=>ac(), {passive:true});
+function noiseBuf(dur){
+  const c=ac(); if(!c) return null;
+  const b=c.createBuffer(1, c.sampleRate*dur, c.sampleRate);
+  const d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  return b;
+}
+function playSwish(){
+  const c=ac(); if(!c||!soundOn) return;
+  const src=c.createBufferSource(); src.buffer=noiseBuf(0.28);
+  const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=3400; f.Q.value=1.1;
+  const g=c.createGain();
+  g.gain.setValueAtTime(0.0001,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.5,c.currentTime+0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.28);
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+}
+function playApplause(){
+  const c=ac(); if(!c||!soundOn) return;
+  // 함성 (roar) 레이어
+  {
+    const src=c.createBufferSource(); src.buffer=noiseBuf(1.1);
+    const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=650;
+    const g=c.createGain(); const t=c.currentTime;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.7,t+0.10);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+1.1);
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+  }
+  const src=c.createBufferSource(); src.buffer=noiseBuf(1.3);
+  const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1600; f.Q.value=0.5;
+  const g=c.createGain();
+  const t=c.currentTime;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.55,t+0.08);
+  g.gain.setValueAtTime(0.45,t+0.5);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+1.3);
+  // 박수 질감: 진폭 흔들기
+  const lfo=c.createOscillator(); lfo.frequency.value=9;
+  const lg=c.createGain(); lg.gain.value=0.12;
+  lfo.connect(lg); lg.connect(g.gain); lfo.start(); lfo.stop(t+1.3);
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+}
+function playMiss(){
+  const c=ac(); if(!c||!soundOn) return;
+  const o=c.createOscillator(); o.type='square'; o.frequency.setValueAtTime(180,c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(90,c.currentTime+0.18);
+  const g=c.createGain();
+  g.gain.setValueAtTime(0.18,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.2);
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+0.22);
+}
+function playBuzzer(){
+  const c=ac(); if(!c||!soundOn) return;
+  const o=c.createOscillator(); o.type='sawtooth'; o.frequency.value=210;
+  const g=c.createGain(); g.gain.setValueAtTime(0.22,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.9);
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+0.9);
+}
+$('sndBtn').onclick=()=>{ soundOn=!soundOn; $('sndBtn').textContent=soundOn?'🔊':'🔇'; if(soundOn) ac(); };
+
+
+/* ============ 내 단어장 ============ */
+let customWords = [];        // [["word","뜻"], ...]
+let customOnly = false;
+
+async function loadWords(){
+  try{
+    const r = await window.storage.get('my-words');
+    if(r && r.value){
+      const d = JSON.parse(r.value);
+      customWords = d.words || [];
+      customOnly = !!d.customOnly;
+    }
+  }catch(e){ /* 저장된 것 없음 */ }
+  $('customOnly').checked = customOnly;
+  renderWordList();
+}
+async function saveWords(){
+  try{
+    await window.storage.set('my-words', JSON.stringify({words:customWords, customOnly}));
+  }catch(e){ /* 저장 미지원 환경: 세션 동안만 유지 */ }
+}
+
+function getPool(){
+  if(customOnly && customWords.length>=4) return customWords;
+  return customWords.length ? VOCAB.concat(customWords) : VOCAB;
+}
+
+function renderWordList(){
+  const list = $('wordList');
+  list.innerHTML='';
+  if(!customWords.length){
+    const d=document.createElement('div');
+    d.className='wm-empty';
+    d.textContent='아직 추가한 단어가 없어요. 위에서 단어와 뜻을 입력해 보세요.';
+    list.appendChild(d);
+  } else {
+    customWords.forEach((pair,idx)=>{
+      const row=document.createElement('div'); row.className='wm-row';
+      const w=document.createElement('span'); w.className='w'; w.textContent=pair[0];
+      const m=document.createElement('span'); m.className='m'; m.textContent=pair[1];
+      const del=document.createElement('button'); del.className='del'; del.textContent='✕';
+      del.onclick=()=>{ customWords.splice(idx,1); saveWords(); renderWordList(); };
+      row.appendChild(w); row.appendChild(m); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+  $('wordCount').textContent = '내 단어 '+customWords.length+'개';
+  // 내 단어만 모드는 4개 이상일 때만
+  const cb=$('customOnly');
+  cb.disabled = customWords.length<4;
+  if(customWords.length<4 && customOnly){ customOnly=false; cb.checked=false; saveWords(); }
+}
+
+function addWord(){
+  const w=$('wInput').value.trim();
+  const m=$('mInput').value.trim();
+  if(!w || !m) return;
+  if(customWords.some(p=>p[0].toLowerCase()===w.toLowerCase())){
+    $('wInput').value=''; $('mInput').value=''; return; // 중복 무시
+  }
+  customWords.push([w,m]);
+  $('wInput').value=''; $('mInput').value='';
+  $('wInput').focus();
+  saveWords(); renderWordList();
+}
+
+$('addWordBtn').onclick = addWord;
+$('mInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addWord(); });
+$('manageBtn').onclick = ()=>{ $('wordOverlay').classList.remove('hide'); renderWordList(); };
+$('wmClose').onclick = ()=>{ $('wordOverlay').classList.add('hide'); };
+$('customOnly').onchange = e=>{ customOnly=e.target.checked; saveWords(); };
+
+
+/* ============ 게임 상태 ============ */
+const TARGET = 21;
+const state = {
+  running:false,
+  P1:{score:0,streak:0,word:null,answer:null,el:{}},
+  P2:{score:0,streak:0,word:null,answer:null,el:{}}
+};
+state.P1.el = {score:$('scoreP1'),word:$('wordP1'),choices:$('choicesP1'),streak:$('streakP1'),panel:$('panelP1')};
+state.P2.el = {score:$('scoreP2'),word:$('wordP2'),choices:$('choicesP2'),streak:$('streakP2'),panel:$('panelP2')};
+
+function newQuestion(P){
+  if(typeof mode!=='undefined' && mode==='online' && P===state.P2){
+    P.el.word.textContent='상대방'; P.el.choices.innerHTML=''; return;
+  }
+  const POOL = getPool();
+  const pick = POOL[rand(POOL.length)];
+  P.word = pick[0];
+  P.answer = pick[1];
+  // 오답 3개
+  const opts = [pick[1]];
+  const used = new Set([pick[1]]);
+  let guard=0;
+  while(opts.length<4 && guard<200){
+    guard++;
+    const c = POOL[rand(POOL.length)][1];
+    if(!used.has(c)){ used.add(c); opts.push(c); }
+  }
+  // 풀이 작아 오답이 모자라면 기본 어휘에서 보충
+  while(opts.length<4){
+    const c = VOCAB[rand(VOCAB.length)][1];
+    if(!used.has(c)){ used.add(c); opts.push(c); }
+  }
+  shuffle(opts);
+  P.el.word.textContent = P.word;
+  P.el.choices.classList.remove('lock');
+  P.el.choices.innerHTML = '';
+  opts.forEach(txt=>{
+    const b = document.createElement('button');
+    b.className='choice';
+    b.textContent=txt;
+    b.onclick = ()=> answer(P,b,txt);
+    P.el.choices.appendChild(b);
+  });
+  renderStreak(P);
+}
+
+function renderStreak(P){
+  const s = P.streak;
+  if(s>=2){ P.el.streak.textContent = '🔥 '+s+'연속 · 다음 3점!'; }
+  else if(s===1){ P.el.streak.textContent = '🔥 1연속'; }
+  else { P.el.streak.textContent = ''; }
+}
+
+function answer(P,btn,txt){
+  if(!state.running) return;
+  const box = P.el.choices;
+  box.classList.add('lock');
+  const correct = (txt===P.answer);
+  const side = (P===state.P1)?'top':'bottom';   // 골대: P1=왼쪽, P2=오른쪽
+  const panelPos = (P===state.P1)?'bottom':'top'; // 패널: P1=아래, P2=위
+  const team = (P===state.P1)?'red':'blue';
+
+  if(correct){
+    btn.classList.add('ok');
+    const three = P.streak>=2;      // 3연속째부터 3점
+    const pts = three?3:2;
+    P.streak++;
+    // 점수는 즉시 반영 (애니메이션과 무관)
+    P.score += pts;
+    P.el.score.textContent = P.score;
+    popScore(P.el.score);
+    showFlash(panelPos, three?'3-POINTER!':'SWISH! +'+pts, team);
+    shoot(side, team, three);       // 슛은 시각 효과로만 (골인 순간 함성)
+    if(typeof reportScore==='function') reportScore();
+    if(P.score>=TARGET){
+      if(mode==='online'){ setTimeout(syncState, 500); return; }
+      setTimeout(()=>endGame(P), 400); return;
+    }
+    setTimeout(()=>newQuestion(P), 700);
+  } else {
+    btn.classList.add('bad');
+    // 정답 표시
+    [...box.children].forEach(c=>{ if(c.textContent===P.answer) c.classList.add('ok'); });
+    P.streak = 0;
+    playMiss();
+    airball(side, team);
+    showFlash(panelPos,'MISS…',team);
+    setTimeout(()=>newQuestion(P), 900);
+  }
+}
+
+function popScore(el){
+  el.animate(
+    [{transform:'scale(1)'},{transform:'scale(1.35)'},{transform:'scale(1)'}],
+    {duration:380, easing:'ease-out'}
+  );
+}
+
+/* ============ 플래시 텍스트 ============ */
+const flashEl = $('flash');
+function showFlash(side,text,team){
+  flashEl.textContent = text;
+  flashEl.style.color = team==='red' ? '#ff8a97' : '#8fbcff';
+  flashEl.style.top = side==='top' ? '20%' : '76%';
+  flashEl.animate(
+    [{opacity:0,transform:'translateX(-50%) scale(.7)'},
+     {opacity:1,transform:'translateX(-50%) scale(1.05)'},
+     {opacity:0,transform:'translateX(-50%) scale(1)'}],
+    {duration:900,easing:'ease-out'}
+  );
+}
+
+/* ================= 코트 & 캔버스 (리얼 중계 뷰) ================= */
+const canvas = $('court');
+const ctx = canvas.getContext('2d');
+let W=0,H=0,DPR=1;
+const players = [];
+const shots = [];
+let net = {top:0, bottom:0};
+let crowd = [];
+const CT = {}; // 코트 기하
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function computeCourt(){
+  CT.scoreH = Math.min(30, H*0.16);
+  CT.crowdTop = CT.scoreH + 4;
+  CT.topY = H*0.34;              // 먼 사이드라인
+  CT.botY = H*0.985;            // 가까운 사이드라인
+  CT.cx = W/2;
+  CT.topHW = W*0.30;            // 위쪽 반폭 (원근으로 좁음)
+  CT.botHW = W*0.485;          // 아래쪽 반폭 (넓음)
+  CT.midY = (CT.topY+CT.botY)/2;
+  CT.span = CT.botY-CT.topY;
+}
+function tOf(y){ return (y-CT.topY)/CT.span; }
+function leftX(y){ const t=tOf(y); return CT.cx - (CT.topHW+(CT.botHW-CT.topHW)*t); }
+function rightX(y){ const t=tOf(y); return CT.cx + (CT.topHW+(CT.botHW-CT.topHW)*t); }
+function pScale(y){ return 0.55 + 0.85*tOf(y); }   // 앞쪽이 크게
+
+function buildCrowd(){
+  crowd=[];
+  const y0=CT.crowdTop, y1=CT.topY;
+  const n = Math.floor(W*(y1-y0)/26);
+  for(let i=0;i<n;i++){
+    const r=Math.random();
+    // KOR 관중처럼 붉은색 다수 + 소수 흰/청
+    const c = r<0.6 ? '#b8352c' : (r<0.8 ? '#d9d2c8' : (r<0.9?'#2b5fa8':'#1b1b22'));
+    crowd.push({x:Math.random(), y:Math.random(), c});
+  }
+}
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  const wrap = $('courtWrap');
+  W = Math.max(120, wrap.clientWidth);
+  H = Math.max(120, wrap.clientHeight);
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  computeCourt();
+  buildCrowd();
+  for(const p of players) clampIn(p);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>setTimeout(resize,150));
+
+function clampIn(p){
+  p.y = Math.max(CT.topY+8, Math.min(CT.botY-6, p.y));
+  p.x = Math.max(leftX(p.y)+8, Math.min(rightX(p.y)-8, p.x));
+}
+function retarget(p){
+  p.ty = CT.topY+10 + Math.random()*(CT.span-18);
+  p.tx = leftX(p.ty)+10 + Math.random()*(rightX(p.ty)-leftX(p.ty)-20);
+}
+function initPlayers(){
+  players.length=0;
+  const skins=['#e8b58a','#d99b6a','#c98a58','#f0c49a','#b97a4e'];
+  for(let i=0;i<10;i++){
+    const team = i<5 ? 'red':'blue';   // 홈(빨강) vs 원정(흰색)
+    const p={ x:CT.cx, y:CT.midY, tx:0,ty:0, team, num:(i%5)+1,
+              bob:Math.random()*6.28, run:Math.random()*6.28,
+              skin:skins[i%skins.length], vx:0, vy:0 };
+    retarget(p); p.x=p.tx; p.y=p.ty; clampIn(p);
+    players.push(p);
+  }
+}
+
+function hoopPos(side){
+  const y = CT.midY - CT.span*0.05;
+  return side==='top' ? {x:leftX(y)+8, y} : {x:rightX(y)-8, y};
+}
+function startPos(side){
+  const y=CT.botY-18;
+  return side==='top' ? {x:leftX(y)+W*0.16, y} : {x:rightX(y)-W*0.16, y};
+}
+function shoot(side){
+  const s=startPos(side), h=hoopPos(side);
+  shots.push({x0:s.x,y0:s.y,x1:h.x,y1:h.y,t:0,dur:prefersReduced?1:36,side,miss:false});
+}
+function airball(side){
+  const s=startPos(side), h=hoopPos(side);
+  shots.push({x0:s.x,y0:s.y,x1:h.x+(side==='top'?40:-40),y1:h.y+34,t:0,dur:prefersReduced?1:30,side,miss:true});
+}
+
+/* ============ 경기 AI: 공 하나로 플레이 ============ */
+const ball={holder:null,x:0,y:0,h:0,flight:null,loose:true,lastShot:false};
+let playTimer=30;
+const pops=[];
+function pop(x,y,text,color){ pops.push({x,y,t:0,text,color:color||'#ffe27a'}); }
+function drawPops(){
+  for(let i=pops.length-1;i>=0;i--){
+    const o=pops[i]; o.t++;
+    const k=o.t/46;
+    ctx.globalAlpha=Math.max(0,1-k);
+    ctx.fillStyle=o.color;
+    ctx.font='900 11px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.strokeStyle='rgba(0,0,0,.7)'; ctx.lineWidth=3;
+    ctx.strokeText(o.text,o.x,o.y-16-k*12);
+    ctx.fillText(o.text,o.x,o.y-16-k*12);
+    ctx.globalAlpha=1;
+    if(o.t>46) pops.splice(i,1);
+  }
+}
+function attackSide(team){ return team==='red' ? 'top':'bottom'; }
+function giveBall(p){
+  const wasShot=ball.lastShot;
+  ball.holder=p; ball.flight=null; ball.loose=false; ball.lastShot=false;
+  if(wasShot) pop(p.x,p.y,'리바운드!','#9fe3ff');
+  playTimer=50+rand(60);
+  for(const q of players) if(q!==p && Math.random()<0.6) retarget(q);
+}
+function startFlight(tx,ty,dur,arc,kind,target,onEnd){
+  ball.flight={x0:ball.x,y0:ball.y,x1:tx,y1:ty,t:0,dur,arc,kind,target,onEnd};
+  ball.holder=null;
+}
+function looseBallNear(x,y){
+  ball.loose=true; ball.flight=null; ball.holder=null;
+  ball.x=x+(Math.random()*30-15); ball.y=y+(Math.random()*20-10); ball.h=0;
+  ball.y=Math.max(CT.topY+10,Math.min(CT.botY-8,ball.y));
+  ball.x=Math.max(leftX(ball.y)+8,Math.min(rightX(ball.y)-8,ball.x));
+}
+function shootAmbient(p,side,name,dur,arc){
+  const h=hoopPos(side);
+  pop(p.x,p.y,name);
+  p.jump = (name==='덩크!'||name==='점프슛!'||name==='3점슛!') ? 14 : 8;
+  ball.lastShot=true;
+  startFlight(h.x,h.y,dur,arc,'shot',null,()=>{
+    if(Math.random()<0.55){ net[side]=name==='덩크!'?14:10; }
+    looseBallNear(h.x,h.y);
+  });
+}
+function doPass(p,long){
+  const mates=players.filter(q=>q.team===p.team&&q!==p);
+  const m=mates[rand(mates.length)];
+  pop(p.x,p.y,long?'롱패스!':'패스!','#c8f7c5');
+  startFlight(m.x,m.y,long?26:14,long?36:8,'pass',m,()=>{
+    // 인터셉트 확률
+    let thief=null;
+    for(const q of players) if(q.team!==p.team && Math.hypot(q.x-m.x,q.y-m.y)<13 && Math.random()<0.25) thief=q;
+    if(thief){ pop(thief.x,thief.y,'인터셉트!','#ff9aa6'); giveBall(thief); }
+    else giveBall(m);
+  });
+}
+function doCrossover(p,side){
+  const h=hoopPos(side);
+  pop(p.x,p.y,'크로스오버!','#ffd0f0');
+  const lat=(Math.random()<0.5?1:-1)*30;
+  p.tx=(p.x+h.x)/2 + lat; p.ty=(p.y+h.y)/2 + (Math.random()*20-10);
+  playTimer=45;
+}
+function doDrive(p,side){
+  const h=hoopPos(side);
+  pop(p.x,p.y,'돌파!','#ffe9b0');
+  p.tx=h.x+(h.x>CT.cx?-18:18); p.ty=h.y+ (Math.random()*16-8);
+  playTimer=40;
+}
+function decideAction(p){
+  const side=attackSide(p.team), h=hoopPos(side);
+  const d=Math.hypot(h.x-p.x,h.y-p.y);
+  const far=Math.min(W,H);
+  const r=Math.random();
+  if(d<far*0.14){
+    if(r<0.45) shootAmbient(p,side,'덩크!',10,10);
+    else if(r<0.8) shootAmbient(p,side,'골밑슛!',14,20);
+    else doPass(p,false);
+  } else if(d<far*0.34){
+    if(r<0.3) shootAmbient(p,side,'점프슛!',22,Math.min(55,H*0.24));
+    else if(r<0.55) doDrive(p,side);
+    else if(r<0.8) doPass(p,false);
+    else doCrossover(p,side);
+  } else {
+    if(r<0.15) shootAmbient(p,side,'3점슛!',28,Math.min(70,H*0.3));
+    else if(r<0.55) doPass(p,false);
+    else if(r<0.7) doPass(p,true);
+    else if(r<0.85) doDrive(p,side);
+    else doCrossover(p,side);
+  }
+  if(!ball.flight) playTimer=Math.max(playTimer,35);
+}
+function ambientTick(){
+  if(ball.flight){
+    const f=ball.flight; f.t++;
+    if(f.kind==='pass'&&f.target){ f.x1=f.target.x; f.y1=f.target.y; }
+    const k=Math.min(1,f.t/f.dur);
+    ball.x=f.x0+(f.x1-f.x0)*k;
+    ball.y=f.y0+(f.y1-f.y0)*k;
+    ball.h=Math.sin(k*Math.PI)*f.arc;
+    if(k>=1){ const cb=f.onEnd; if(ball.flight===f) ball.flight=null; cb&&cb(); }
+    return;
+  }
+  if(ball.holder){
+    const p=ball.holder;
+    const sc=pScale(p.y);
+    ball.x=p.x+5*sc*(p.vx>=0?1:-1);
+    ball.y=p.y+8*sc; ball.h=0;
+    // 볼 캐리어는 공격 골대 쪽으로 이동 성향
+    if(Math.random()<0.012){ const h=hoopPos(attackSide(p.team)); p.tx=(p.tx+h.x)/2; p.ty=(p.ty+h.y)/2; }
+    // 수비수 마크: 가장 가까운 상대가 따라붙음
+    let mk=null,md=1e9;
+    for(const q of players) if(q.team!==p.team){ const dd=Math.hypot(q.x-p.x,q.y-p.y); if(dd<md){md=dd;mk=q;} }
+    if(mk && Math.random()<0.06){ mk.tx=p.x+(Math.random()*14-7); mk.ty=p.y+(Math.random()*14-7); }
+    // 스틸
+    if(mk && md<13 && Math.random()<0.008){ pop(mk.x,mk.y,'스틸!','#ff9aa6'); giveBall(mk); return; }
+    playTimer--;
+    if(playTimer<=0) decideAction(p);
+  } else if(ball.loose){
+    let best=null,bd=1e9;
+    for(const q of players){ const dd=Math.hypot(q.x-ball.x,q.y-ball.y); if(dd<bd){bd=dd;best=q;} }
+    if(best){ best.tx=ball.x; best.ty=ball.y; if(bd<10) giveBall(best); }
+  }
+}
+function drawBallGlobal(){
+  if(ball.holder) return; // 캐리어 손의 드리블은 drawPlayer가 그림
+  const sc=pScale(ball.y);
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(ball.x,ball.y,3.2*sc,1.3*sc,0,0,Math.PI*2); ctx.fill();
+  const by=ball.y-ball.h;
+  ctx.fillStyle='#e8721c';
+  ctx.beginPath(); ctx.arc(ball.x,by,3*sc,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(60,20,0,.55)'; ctx.lineWidth=0.7*sc;
+  ctx.beginPath(); ctx.arc(ball.x,by,3*sc,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ball.x-3*sc,by); ctx.lineTo(ball.x+3*sc,by); ctx.stroke();
+}
+
+
+/* ---------- 그리기 ---------- */
+function drawCrowd(){
+  ctx.fillStyle='#15100f';
+  ctx.fillRect(0,CT.crowdTop,W,CT.topY-CT.crowdTop);
+  const y0=CT.crowdTop, y1=CT.topY;
+  for(const d of crowd){
+    ctx.fillStyle=d.c;
+    ctx.fillRect(d.x*W, y0+d.y*(y1-y0), 2.4, 2.4);
+  }
+  // 광고 보드
+  ctx.fillStyle='#0b2a4a';
+  ctx.fillRect(0,CT.topY-8,W,8);
+}
+
+function paintKey(side){
+  const y1=CT.midY-CT.span*0.12, y2=CT.midY+CT.span*0.12;
+  ctx.beginPath();
+  if(side==='left'){
+    ctx.moveTo(leftX(y1),y1); ctx.lineTo(leftX(y1)+W*0.16,y1);
+    ctx.lineTo(leftX(y2)+W*0.16,y2); ctx.lineTo(leftX(y2),y2);
+  } else {
+    ctx.moveTo(rightX(y1),y1); ctx.lineTo(rightX(y1)-W*0.16,y1);
+    ctx.lineTo(rightX(y2)-W*0.16,y2); ctx.lineTo(rightX(y2),y2);
+  }
+  ctx.closePath();
+}
+
+function drawCourt(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#070b16'; ctx.fillRect(0,0,W,H);
+  drawCrowd();
+
+  // 마루 (원근 사다리꼴)
+  const g=ctx.createLinearGradient(0,CT.topY,0,CT.botY);
+  g.addColorStop(0,'#c98a44'); g.addColorStop(1,'#e6ad63');
+  ctx.beginPath();
+  ctx.moveTo(leftX(CT.topY),CT.topY); ctx.lineTo(rightX(CT.topY),CT.topY);
+  ctx.lineTo(rightX(CT.botY),CT.botY); ctx.lineTo(leftX(CT.botY),CT.botY); ctx.closePath();
+  ctx.fillStyle=g; ctx.fill();
+  ctx.save(); ctx.clip();
+  // 나무 결
+  ctx.strokeStyle='rgba(120,72,24,.28)'; ctx.lineWidth=1;
+  for(let i=1;i<15;i++){
+    const y=CT.topY+CT.span*Math.pow(i/15,1.5);
+    ctx.beginPath(); ctx.moveTo(leftX(y),y); ctx.lineTo(rightX(y),y); ctx.stroke();
+  }
+  ctx.restore();
+
+  // 페인트존 (좌:빨강 / 우:파랑)
+  ctx.fillStyle='rgba(196,58,46,.32)'; paintKey('left'); ctx.fill();
+  ctx.fillStyle='rgba(43,109,214,.32)'; paintKey('right'); ctx.fill();
+
+  // 흰 라인
+  ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(leftX(CT.topY),CT.topY); ctx.lineTo(rightX(CT.topY),CT.topY);
+  ctx.lineTo(rightX(CT.botY),CT.botY); ctx.lineTo(leftX(CT.botY),CT.botY); ctx.closePath(); ctx.stroke();
+  // 하프라인
+  ctx.beginPath(); ctx.moveTo(CT.cx,CT.topY); ctx.lineTo(CT.cx,CT.botY); ctx.stroke();
+  // 센터써클
+  ctx.beginPath(); ctx.ellipse(CT.cx,CT.midY,W*0.085,CT.span*0.09,0,0,Math.PI*2); ctx.stroke();
+  // 페인트 외곽 + 자유투써클
+  ctx.lineWidth=1.5;
+  paintKey('left'); ctx.stroke();
+  paintKey('right'); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(leftX(CT.midY)+W*0.16,CT.midY,W*0.045,CT.span*0.065,0,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(rightX(CT.midY)-W*0.16,CT.midY,W*0.045,CT.span*0.065,0,0,Math.PI*2); ctx.stroke();
+  // 3점 아크
+  ctx.beginPath(); ctx.ellipse(leftX(CT.midY),CT.midY,W*0.20,CT.span*0.34,0,-Math.PI/2.3,Math.PI/2.3); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(rightX(CT.midY),CT.midY,W*0.20,CT.span*0.34,0,Math.PI-Math.PI/2.3,Math.PI+Math.PI/2.3); ctx.stroke();
+
+  drawHoop('top');
+  drawHoop('bottom');
+}
+
+function drawHoop(side){
+  const h=hoopPos(side);
+  const dir = side==='top' ? 1 : -1;       // 림이 코트 안쪽으로
+  const poleX = side==='top' ? leftX(CT.midY)-8 : rightX(CT.midY)+8;
+  // 지지대
+  ctx.strokeStyle='#9aa3b2'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(poleX,h.y+34); ctx.lineTo(poleX,h.y-20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(poleX,h.y-6); ctx.lineTo(h.x,h.y-6); ctx.stroke();
+  // 백보드
+  ctx.fillStyle='rgba(255,255,255,.85)';
+  ctx.fillRect(h.x-2,h.y-18,4,26);
+  ctx.strokeStyle='#e0592b'; ctx.lineWidth=2;
+  ctx.strokeRect(h.x-2,h.y-6,4,9);
+  // 림 (팀 색)
+  ctx.strokeStyle = side==='top' ? '#ff5566' : '#4d9dff';
+  ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(h.x,h.y); ctx.lineTo(h.x+dir*15,h.y); ctx.stroke();
+  // 골대 라벨 P1 / P2
+  const lab = side==='top' ? 'P1' : 'P2';
+  const labc = side==='top' ? '#ff5566' : '#4d9dff';
+  ctx.fillStyle=labc;
+  roundRect(h.x-11+dir*8, h.y-32, 22, 13, 4); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='900 9px system-ui';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(lab, h.x+dir*8, h.y-25.5);
+  // 그물
+  const wob = net[side]>0 ? Math.sin(Date.now()/40)*2.6*(net[side]/10) : 0;
+  ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=1;
+  for(let i=0;i<4;i++){
+    const nx=h.x+dir*(3+i*3.4);
+    ctx.beginPath(); ctx.moveTo(nx,h.y); ctx.lineTo(nx+wob,h.y+12); ctx.stroke();
+  }
+  if(net[side]>0) net[side]-=0.6;
+}
+
+function drawPlayer(p){
+  const sc=pScale(p.y);
+  if(p.jump===undefined) p.jump=0;
+  const jo = p.jump>0 ? Math.sin(p.jump/14*Math.PI)*9*sc : 0;
+  if(p.jump>0) p.jump--;
+  const jersey = p.team==='red' ? '#d13b32' : '#2b6dd6';
+  const shorts = p.team==='red' ? '#8e1f18' : '#173e7d';
+  const numc   = '#fff';
+  const trim   = p.team==='red' ? '#ffd9d5' : '#bcd7ff';
+  const skin   = p.skin;
+  const dir = p.vx>=0 ? 1 : -1;              // 진행 방향
+  const run = p.run;                          // 달리기 위상
+  const legA = Math.sin(run)*4.5*sc;          // 다리 스윙
+  const legB = Math.sin(run+Math.PI)*4.5*sc;
+  const armA = Math.sin(run+Math.PI)*3.6*sc;  // 팔은 다리 반대
+  const bob  = Math.abs(Math.sin(run))*1.4*sc + jo;
+  const gy = p.y+10*sc;                       // 지면
+
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,.32)';
+  ctx.beginPath(); ctx.ellipse(p.x,gy,8.5*sc,2.6*sc,0,0,Math.PI*2); ctx.fill();
+
+  ctx.lineCap='round';
+  // 뒷다리
+  ctx.strokeStyle=skin; ctx.lineWidth=2.4*sc;
+  ctx.beginPath(); ctx.moveTo(p.x-1.5*sc, p.y+3*sc-bob);
+  ctx.quadraticCurveTo(p.x-1.5*sc+legB*0.5, p.y+6.5*sc, p.x+legB, gy); ctx.stroke();
+  // 신발 뒤
+  ctx.strokeStyle='#222'; ctx.lineWidth=2.8*sc;
+  ctx.beginPath(); ctx.moveTo(p.x+legB, gy); ctx.lineTo(p.x+legB+2.2*sc*dir, gy); ctx.stroke();
+
+  // 뒷팔
+  ctx.strokeStyle=skin; ctx.lineWidth=2.2*sc;
+  ctx.beginPath(); ctx.moveTo(p.x-3*sc*dir, p.y-5*sc-bob);
+  ctx.quadraticCurveTo(p.x-3*sc*dir - armA*0.4, p.y-1*sc, p.x-3*sc*dir - armA, p.y+2*sc-bob); ctx.stroke();
+
+  // 반바지
+  ctx.fillStyle=shorts;
+  ctx.beginPath();
+  ctx.moveTo(p.x-4.4*sc, p.y+0.5*sc-bob);
+  ctx.lineTo(p.x+4.4*sc, p.y+0.5*sc-bob);
+  ctx.lineTo(p.x+4.9*sc, p.y+4.6*sc-bob);
+  ctx.lineTo(p.x-4.9*sc, p.y+4.6*sc-bob);
+  ctx.closePath(); ctx.fill();
+
+  // 유니폼 상의
+  ctx.fillStyle=jersey;
+  roundRect(p.x-4.6*sc, p.y-8.6*sc-bob, 9.2*sc, 9.6*sc, 2.6*sc); ctx.fill();
+  // 옆 라인
+  ctx.strokeStyle=trim; ctx.lineWidth=0.9*sc;
+  ctx.beginPath(); ctx.moveTo(p.x-4.6*sc,p.y-7*sc-bob); ctx.lineTo(p.x-4.6*sc,p.y+0.6*sc-bob); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(p.x+4.6*sc,p.y-7*sc-bob); ctx.lineTo(p.x+4.6*sc,p.y+0.6*sc-bob); ctx.stroke();
+  // 등번호
+  ctx.fillStyle=numc; ctx.font='900 '+(5.4*sc)+'px system-ui';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(p.num, p.x, p.y-3.6*sc-bob);
+
+  // 앞다리
+  ctx.strokeStyle=skin; ctx.lineWidth=2.6*sc;
+  ctx.beginPath(); ctx.moveTo(p.x+1.5*sc, p.y+3*sc-bob);
+  ctx.quadraticCurveTo(p.x+1.5*sc+legA*0.5, p.y+6.5*sc, p.x+legA, gy); ctx.stroke();
+  // 신발 앞
+  ctx.strokeStyle='#111'; ctx.lineWidth=3*sc;
+  ctx.beginPath(); ctx.moveTo(p.x+legA, gy); ctx.lineTo(p.x+legA+2.4*sc*dir, gy); ctx.stroke();
+
+  // 머리 + 머리카락
+  ctx.fillStyle=skin;
+  ctx.beginPath(); ctx.arc(p.x, p.y-12.2*sc-bob, 3.5*sc, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#241a12';
+  ctx.beginPath(); ctx.arc(p.x, p.y-13*sc-bob, 3.3*sc, Math.PI*1.05, Math.PI*1.95); ctx.fill();
+
+  // 앞팔
+  const handX = p.x+3.4*sc*dir + armA;
+  ctx.strokeStyle=skin; ctx.lineWidth=2.4*sc;
+  ctx.beginPath(); ctx.moveTo(p.x+3*sc*dir, p.y-5*sc-bob);
+  ctx.quadraticCurveTo(handX, p.y-1*sc, handX, p.y+1.5*sc); ctx.stroke();
+  // 볼 캐리어만 드리블 공을 가짐
+  if(typeof ball!=='undefined' && ball.holder===p){
+    const ballY = p.y+7*sc + Math.abs(Math.sin(run*2))*5.5*sc;
+    ctx.fillStyle='#e8721c';
+    ctx.beginPath(); ctx.arc(handX, ballY, 2.6*sc, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(60,20,0,.55)'; ctx.lineWidth=0.7*sc;
+    ctx.beginPath(); ctx.arc(handX, ballY, 2.6*sc, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(handX-2.6*sc,ballY); ctx.lineTo(handX+2.6*sc,ballY); ctx.stroke();
+    // 볼 캐리어 표시 링
+    ctx.strokeStyle='rgba(255,226,122,.8)'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.ellipse(p.x,p.y+10*sc,10*sc,3.4*sc,0,0,Math.PI*2); ctx.stroke();
+  }
+}
+
+function drawShots(){
+  for(let i=shots.length-1;i>=0;i--){
+    const s=shots[i]; s.t++;
+    const k=Math.min(1,s.t/s.dur);
+    const x=s.x0+(s.x1-s.x0)*k;
+    const arc=Math.sin(k*Math.PI)*Math.min(70,H*0.30);
+    const y=s.y0+(s.y1-s.y0)*k - arc;
+    const r=6*pScale(y);
+    ctx.fillStyle='#ff7a1a';
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-r,y); ctx.lineTo(x+r,y); ctx.stroke();
+    if(k>=1){ if(!s.miss){ net[s.side]=10; playSwish(); playApplause(); } shots.splice(i,1); }
+  }
+}
+
+function drawScoreboard(){
+  const bw=Math.min(W*0.94,360), bh=CT.scoreH-4, bx=(W-bw)/2, by=2;
+  ctx.fillStyle='rgba(9,12,22,.94)'; roundRect(bx,by,bw,bh,6); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1; roundRect(bx,by,bw,bh,6); ctx.stroke();
+  const cy=by+bh/2, tab=Math.max(34,bw*0.14);
+  // P1 (빨강)
+  ctx.fillStyle='#d13b32'; roundRect(bx+4,by+4,tab,bh-8,4); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('P1',bx+4+tab/2,cy);
+  // P2 (파랑)
+  ctx.fillStyle='#2b6dd6'; roundRect(bx+bw-4-tab,by+4,tab,bh-8,4); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.fillText('P2',bx+bw-4-tab/2,cy);
+  // 점수
+  ctx.fillStyle='#fff'; ctx.font='900 17px "Arial Black",system-ui';
+  ctx.fillText(state.P1.score, bx+tab+22, cy);
+  ctx.fillText(state.P2.score, bx+bw-tab-22, cy);
+  // 중앙
+  ctx.fillStyle='#ffb15a'; ctx.font='bold 10px system-ui';
+  ctx.fillText('FIRST TO 21', CT.cx, cy);
+}
+
+let last=0;
+function loop(ts){
+  if(!last) last=ts; last=ts;
+  for(const p of players){
+    const dx=p.tx-p.x, dy=p.ty-p.y, d=Math.hypot(dx,dy);
+    if(d<5){ retarget(p); p.vx*=0.5; }
+    else { const sp=0.7; p.vx=dx/d*sp; p.vy=dy/d*sp; p.x+=p.vx; p.y+=p.vy; }
+    p.run+=0.22; p.bob+=0.16; clampIn(p);
+  }
+  ambientTick();
+  drawCourt();
+  const order=[...players].sort((a,b)=>a.y-b.y);   // 뒤→앞 순서로 겹치게
+  for(const p of order) drawPlayer(p);
+  drawBallGlobal();
+  drawPops();
+  drawShots();
+  drawScoreboard();
+  requestAnimationFrame(loop);
+}
+
+
+/* ============ 게임 흐름 ============ */
+function startGame(){
+  ac(); // 모바일 오디오 잠금 해제
+  state.running=true;
+  state.P1.score=state.P2.score=0;
+  state.P1.streak=state.P2.streak=0;
+  state.P1.el.score.textContent='0';
+  state.P2.el.score.textContent='0';
+  $('startOverlay').classList.add('hide');
+  $('winOverlay').classList.add('hide');
+  resize(); initPlayers();
+  newQuestion(state.P1);
+  newQuestion(state.P2);
+}
+
+function endGame(winner){
+  state.running=false;
+  playBuzzer();
+  state.P1.el.choices.classList.add('lock');
+  state.P2.el.choices.classList.add('lock');
+  const isP1 = winner===state.P1;
+  $('winTitle').textContent = isP1 ? 'PLAYER 1 WIN!' : 'PLAYER 2 WIN!';
+  $('winTitle').style.background = isP1
+    ? 'linear-gradient(90deg,#ff5566,#ffb3bb)'
+    : 'linear-gradient(90deg,#3f8cff,#bcd7ff)';
+  $('winScore').textContent = `PLAYER 1  ${state.P1.score} : ${state.P2.score}  PLAYER 2`;
+  $('winOverlay').classList.remove('hide');
+}
+
+$('startBtn').onclick = startGame;
+$('againBtn').onclick = ()=>{ if(mode==='online'){ location.reload(); } else startGame(); };
+
+
+/* ============ 온라인 대전 ============ */
+let mode='local', myPlayer=0, roomCode='', waitPoll=null, syncPoll=null;
+async function api(path,opts){
+  const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'}},opts||{}));
+  return r.json();
+}
+$('makeRoomBtn').onclick=async()=>{
+  try{
+    const d=await api('/api/room',{method:'POST'});
+    myPlayer=d.player; roomCode=d.code;
+    $('joinBox').classList.add('hide');
+    $('waitMsg').classList.remove('hide');
+    $('waitMsg').innerHTML='방 코드: <b style="font-size:34px;color:#ffb15a;letter-spacing:4px;">'+roomCode+'</b><br>상대 폰에서 같은 주소로 접속해 이 코드를 입력하면<br>자동으로 시작됩니다…';
+    waitPoll=setInterval(async()=>{
+      try{
+        const st=await api('/api/room/'+roomCode+'/state');
+        if(st.joined){ clearInterval(waitPoll); startOnline(); }
+      }catch(e){}
+    },2000);
+  }catch(e){ alert('서버 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'); }
+};
+$('joinRoomBtn').onclick=()=>{ $('waitMsg').classList.add('hide'); $('joinBox').classList.remove('hide'); $('roomCode').focus(); };
+$('joinGo').onclick=async()=>{
+  const c=$('roomCode').value.trim();
+  if(c.length!==4) return;
+  try{
+    const d=await api('/api/room/'+c+'/join',{method:'POST'});
+    if(d.error){ alert(d.error==='full'?'방이 가득 찼어요':'그 코드의 방이 없어요'); return; }
+    myPlayer=2; roomCode=c;
+    startOnline();
+  }catch(e){ alert('서버 연결에 실패했어요.'); }
+};
+function startOnline(){
+  mode='online';
+  startGame();
+  // 위 패널(P2 객체)은 상대 점수 표시 전용
+  const opp=state.P2;
+  opp.el.word.textContent='상대방';
+  opp.el.choices.innerHTML='';
+  opp.el.streak.textContent='온라인 대전';
+  if(syncPoll) clearInterval(syncPoll);
+  syncPoll=setInterval(syncState,2000);
+}
+function reportScore(){
+  if(mode!=='online') return;
+  api('/api/room/'+roomCode+'/score',{method:'POST',body:JSON.stringify({player:myPlayer,score:state.P1.score})}).catch(()=>{});
+}
+async function syncState(){
+  try{
+    const st=await api('/api/room/'+roomCode+'/state');
+    const oppScore = myPlayer===1 ? st.p2 : st.p1;
+    if(oppScore>state.P2.score){
+      state.P2.score=oppScore;
+      state.P2.el.score.textContent=oppScore;
+      popScore(state.P2.el.score);
+    }
+    if(st.winner){
+      clearInterval(syncPoll);
+      if(state.running){
+        state.running=false;
+        playBuzzer();
+        const iWon = st.winner===myPlayer;
+        $('winTitle').textContent = iWon ? 'YOU WIN!' : '상대 승리';
+        $('winTitle').style.background = iWon
+          ? 'linear-gradient(90deg,#ff5566,#ffd08a)'
+          : 'linear-gradient(90deg,#4d9dff,#bcd7ff)';
+        $('winScore').textContent = '나 '+state.P1.score+' : '+state.P2.score+' 상대';
+        $('winOverlay').classList.remove('hide');
+      }
+    }
+  }catch(e){}
+}
+
+/* ============ 부팅 ============ */
+resize(); initPlayers();
+looseBallNear(CT.cx, CT.midY);
+loadWords();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
