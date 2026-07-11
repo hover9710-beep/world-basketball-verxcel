@@ -691,10 +691,10 @@ function roundRect(x,y,w,h,r){
 }
 
 function computeCourt(){
-  CT.scoreH = Math.min(30, H*0.16);
+  CT.scoreH = Math.min(30, H*0.14);
   CT.crowdTop = CT.scoreH + 4;
-  CT.topY = H*0.34;              // 먼 사이드라인
-  CT.botY = H*0.985;            // 가까운 사이드라인
+  CT.topY = Math.min(CT.scoreH + H*0.14, CT.scoreH + 70);  // 관중석 축소
+  CT.botY = H*0.94;             // 아래 여유 (잘림 방지)
   CT.cx = W/2;
   CT.topHW = W*0.30;            // 위쪽 반폭 (원근으로 좁음)
   CT.botHW = W*0.485;          // 아래쪽 반폭 (넓음)
