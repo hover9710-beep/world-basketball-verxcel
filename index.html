@@ -120,6 +120,42 @@
     background:transparent;color:var(--dim);border:2px solid #2a3a60;border-radius:999px;
     padding:10px 26px;font-size:15px;font-weight:800;cursor:pointer;
   }
+
+  /* ---- 에이스 선택 ---- */
+  .aces{display:flex;flex-direction:column;gap:8px;margin:4px 0;}
+  .ace-row{display:flex;align-items:center;gap:8px;}
+  .ace-lab{font-size:12px;font-weight:900;width:58px;text-align:right;flex:0 0 auto;}
+  .ace-list{display:flex;gap:6px;}
+  .ace{border:2px solid #26355c;border-radius:12px;background:#0a101f;
+    padding:4px 3px 2px;cursor:pointer;text-align:center;width:58px;}
+  .ace.sel{border-color:var(--orange);box-shadow:0 0 10px rgba(255,122,26,.45);}
+  .ace .nm{font-size:10px;color:var(--dim);font-weight:800;display:block;margin-top:1px;}
+  .ace.sel .nm{color:var(--orange);}
+
+  /* ---- 득점 선수 카드 (중계 스타일) ---- */
+  #scorerCard{
+    position:fixed;left:50%;top:44%;transform:translate(-50%,-50%) scale(.8);
+    display:flex;align-items:center;gap:12px;
+    background:linear-gradient(90deg,#10141f,#1a2030);
+    border-radius:14px;padding:10px 18px 10px 10px;
+    box-shadow:0 12px 40px rgba(0,0,0,.6);
+    z-index:12;opacity:0;pointer-events:none;
+    transition:opacity .18s, transform .18s;
+    border-left:6px solid var(--orange);
+  }
+  #scorerCard.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  #scorerCard .sc-face{width:72px;height:72px;border-radius:10px;overflow:hidden;background:#0a101f;flex:0 0 auto;}
+  #scorerCard .sc-team{font-size:10px;font-weight:900;letter-spacing:2px;color:var(--dim);}
+  #scorerCard .sc-name{font-size:20px;font-weight:900;color:#fff;line-height:1.2;}
+  #scorerCard .sc-pts{font-size:14px;font-weight:900;color:var(--gold, #ffd08a);}
+
+  .pedit{
+    position:absolute;top:4px;right:4px;
+    background:rgba(10,16,31,.85);border:1px solid #2a3a60;border-radius:8px;
+    font-size:12px;padding:2px 5px;cursor:pointer;line-height:1;z-index:2;
+  }
+  .pedit:active{transform:scale(.9);}
+
   /* ---- 단어 관리 ---- */
   .wm{
     width:min(92vw,420px);max-height:86dvh;display:flex;flex-direction:column;gap:10px;
@@ -165,6 +201,43 @@
     color:#fff;border-radius:999px;width:34px;height:34px;font-size:16px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
   }
+  /* ---- 선수 선택 ---- */
+  .pick-title{font-family:"Arial Black",Impact,sans-serif;font-size:22px;font-weight:900;letter-spacing:1px;}
+  .pick-title.red{color:#ff5566;} .pick-title.blue{color:#4d9dff;}
+  .roster{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;width:min(92vw,440px);}
+  .pcard{position:relative;
+    background:#131c33;border:2px solid #26355c;border-radius:14px;
+    padding:10px 6px 8px;text-align:center;cursor:pointer;
+    transition:transform .08s,border-color .12s;
+  }
+  .pcard:active{transform:scale(.95);}
+  .pcard svg{width:64px;height:76px;}
+  .pcard .pname{font-weight:900;font-size:13px;margin-top:2px;}
+  .pcard .ptag{font-size:10.5px;color:var(--dim);font-weight:700;}
+  /* ---- 골 카드 (중계 그래픽) ---- */
+  #goalCard{
+    position:fixed;left:50%;top:44%;transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#10182e,#1b2a4d);
+    border:2px solid rgba(255,255,255,.25);border-radius:18px;
+    display:flex;align-items:center;gap:12px;padding:12px 22px 12px 12px;
+    z-index:15;opacity:0;pointer-events:none;
+    box-shadow:0 14px 50px rgba(0,0,0,.6);
+  }
+  #goalCard svg{width:74px;height:88px;}
+  #goalCard .gname{font-family:"Arial Black",Impact,sans-serif;font-weight:900;font-size:19px;letter-spacing:1px;}
+  #goalCard .gpts{font-family:"Arial Black",Impact,sans-serif;font-weight:900;font-size:26px;color:#ffd08a;}
+  #goalCard .gsub{font-size:11px;color:#9fb4dd;font-weight:800;letter-spacing:2px;}
+  @keyframes goalPop{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.6);}
+    12%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+    18%{transform:translate(-50%,-50%) scale(1);}
+    80%{opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-56%) scale(.95);}
+  }
+  #goalCard.show{animation:goalPop 1.5s ease forwards;}
+  .mini-face{display:inline-block;width:22px;height:26px;vertical-align:middle;margin-left:6px;}
+  .mini-face svg{width:100%;height:100%;}
+
   .flash{position:fixed;left:50%;transform:translateX(-50%);
     font-family:"Arial Black",Impact,sans-serif;font-weight:900;letter-spacing:2px;
     pointer-events:none;z-index:9;opacity:0;font-size:24px;}
@@ -210,6 +283,10 @@
     <div>3연속 정답 → 다음 슛 <b>3점</b></div>
     <div>먼저 <b>21점</b>이면 승리</div>
   </div>
+  <div class="aces">
+    <div class="ace-row"><span class="ace-lab" style="color:#4d9dff">P2 에이스</span><div id="aceBlue" class="ace-list"></div></div>
+    <div class="ace-row"><span class="ace-lab" style="color:#ff5566">P1 에이스</span><div id="aceRed" class="ace-list"></div></div>
+  </div>
   <button class="btn" id="startBtn">같은 폰으로 대결</button>
   <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
     <button class="btn2" id="makeRoomBtn">🌐 방 만들기</button>
@@ -251,7 +328,32 @@
   <button class="btn" id="againBtn">다시 하기</button>
 </div>
 
+<!-- 선수 선택 오버레이 -->
+<div class="overlay hide" id="pickOverlay">
+  <div class="pick-title" id="pickTitle">PLAYER 1 선수 선택</div>
+  <div class="roster" id="rosterBox"></div>
+</div>
+
+<!-- 골 카드 (중계 그래픽) -->
+<div id="goalCard">
+  <div id="gFace"></div>
+  <div>
+    <div class="gsub">SCORES!</div>
+    <div class="gname" id="gName">-</div>
+  </div>
+  <div class="gpts" id="gPts">+2</div>
+</div>
+
 <div class="flash" id="flash"></div>
+
+<div id="scorerCard">
+  <div class="sc-face"></div>
+  <div>
+    <div class="sc-team"></div>
+    <div class="sc-name"></div>
+    <div class="sc-pts"></div>
+  </div>
+</div>
 
 <script>
 /* ============ 수능 어휘 데이터 ============ */
@@ -630,7 +732,7 @@ function answer(P,btn,txt){
     P.el.score.textContent = P.score;
     popScore(P.el.score);
     showFlash(panelPos, three?'3-POINTER!':'SWISH! +'+pts, team);
-    shoot(side, team, three);       // 슛은 시각 효과로만 (골인 순간 함성)
+    shoot(side, team, three, P, pts);   // 슛은 시각 효과 (골인 순간 함성+선수 카드)
     if(typeof reportScore==='function') reportScore();
     if(P.score>=TARGET){
       if(mode==='online'){ setTimeout(syncState, 500); return; }
@@ -762,13 +864,86 @@ function startPos(side){
   const y=CT.botY-18;
   return side==='top' ? {x:leftX(y)+W*0.16, y} : {x:rightX(y)-W*0.16, y};
 }
-function shoot(side){
-  const s=startPos(side), h=hoopPos(side);
-  shots.push({x0:s.x,y0:s.y,x1:h.x,y1:h.y,t:0,dur:prefersReduced?1:36,side,miss:false});
+/* 슈터: 정답/오답 시 선택한 선수가 코트에 등장해 점프슛 */
+const shooters=[];
+function spawnShooter(side, team, opt){
+  const s=startPos(side);
+  shooters.push({
+    x:s.x, y:s.y, team:team||'red', side,
+    t:0, rel:prefersReduced?1:12, dur:prefersReduced?2:34,
+    released:false,
+    miss:!!(opt&&opt.miss),
+    char:opt&&opt.char, pts:(opt&&opt.pts)||2, three:!!(opt&&opt.three)
+  });
 }
-function airball(side){
-  const s=startPos(side), h=hoopPos(side);
-  shots.push({x0:s.x,y0:s.y,x1:h.x+(side==='top'?40:-40),y1:h.y+34,t:0,dur:prefersReduced?1:30,side,miss:true});
+function shoot(side, team, three, P, pts){
+  spawnShooter(side, team, {three, char:P&&P.char, pts:pts||2, miss:false});
+}
+function airball(side, team){
+  spawnShooter(side, team, {miss:true});
+}
+function drawShooterFigure(sh, jump){
+  const sc=pScale(sh.y)*1.15;
+  const x=sh.x, y=sh.y-jump;
+  const jersey = sh.team==='red' ? '#d13b32' : '#2b6dd6';
+  const shorts = sh.team==='red' ? '#8e1f18' : '#173e7d';
+  const skin='#e8b58a';
+  // 발밑 그림자 (지면 고정)
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(sh.x, sh.y+10*sc, 9*sc, 3*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.lineCap='round';
+  // 점프 중 접힌 다리
+  ctx.strokeStyle=skin; ctx.lineWidth=2.6*sc;
+  ctx.beginPath(); ctx.moveTo(x-2*sc,y+3.5*sc); ctx.lineTo(x-4.5*sc,y+7.5*sc); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+2*sc,y+3.5*sc); ctx.lineTo(x+4.5*sc,y+7.5*sc); ctx.stroke();
+  ctx.strokeStyle='#111'; ctx.lineWidth=3*sc;
+  ctx.beginPath(); ctx.moveTo(x-4.5*sc,y+7.5*sc); ctx.lineTo(x-6*sc,y+8*sc); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+4.5*sc,y+7.5*sc); ctx.lineTo(x+6*sc,y+8*sc); ctx.stroke();
+  // 반바지 + 유니폼
+  ctx.fillStyle=shorts;
+  roundRect(x-4.6*sc, y+0.5*sc, 9.2*sc, 4*sc, 1.5*sc); ctx.fill();
+  ctx.fillStyle=jersey;
+  roundRect(x-5*sc, y-8.5*sc, 10*sc, 10*sc, 2.6*sc); ctx.fill();
+  // 머리
+  ctx.fillStyle=skin;
+  ctx.beginPath(); ctx.arc(x, y-12.5*sc, 3.6*sc, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#241a12';
+  ctx.beginPath(); ctx.arc(x, y-13.3*sc, 3.4*sc, Math.PI*1.05, Math.PI*1.95); ctx.fill();
+  // 두 팔 위로 (슛 폼)
+  ctx.strokeStyle=skin; ctx.lineWidth=2.4*sc;
+  ctx.beginPath(); ctx.moveTo(x-4*sc,y-6*sc); ctx.quadraticCurveTo(x-6.5*sc,y-14*sc, x-3*sc,y-20*sc); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+4*sc,y-6*sc); ctx.quadraticCurveTo(x+6.5*sc,y-14*sc, x+3*sc,y-20*sc); ctx.stroke();
+  // 릴리즈 전에는 손 위의 공
+  if(!sh.released){
+    ctx.fillStyle='#e8721c';
+    ctx.beginPath(); ctx.arc(x, y-24*sc, 4*sc, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(60,20,0,.5)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(x, y-24*sc, 4*sc, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-4*sc,y-24*sc); ctx.lineTo(x+4*sc,y-24*sc); ctx.stroke();
+  }
+}
+function drawShooters(){
+  for(let i=shooters.length-1;i>=0;i--){
+    const sh=shooters[i]; sh.t++;
+    const k=Math.min(1, sh.t/sh.dur);
+    const jump=Math.sin(k*Math.PI)*16;   // 점프 궤적
+    drawShooterFigure(sh, jump);
+    if(!sh.released && sh.t>=sh.rel){
+      sh.released=true;
+      const h=hoopPos(sh.side);
+      const sc=pScale(sh.y)*1.15;
+      const hx=sh.x, hy=sh.y-jump-24*sc;   // 손 위치에서 발사
+      if(sh.miss){
+        shots.push({x0:hx,y0:hy,x1:h.x+(sh.side==='top'?40:-40),y1:h.y+34,
+                    t:0,dur:prefersReduced?1:30,side:sh.side,miss:true});
+      } else {
+        shots.push({x0:hx,y0:hy,x1:h.x,y1:h.y,
+                    t:0,dur:prefersReduced?1:32,side:sh.side,miss:false,
+                    char:sh.char, pts:sh.pts, team:sh.team});
+      }
+    }
+    if(sh.t>=sh.dur) shooters.splice(i,1);
+  }
 }
 
 /* ============ 경기 AI: 공 하나로 플레이 ============ */
@@ -1126,7 +1301,7 @@ function drawShots(){
     ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x-r,y); ctx.lineTo(x+r,y); ctx.stroke();
-    if(k>=1){ if(!s.miss){ net[s.side]=10; playSwish(); playApplause(); } shots.splice(i,1); }
+    if(k>=1){ if(!s.miss){ net[s.side]=10; playSwish(); playApplause(); showGoalCard(s.char, s.pts, s.team); } shots.splice(i,1); }
   }
 }
 
@@ -1165,6 +1340,7 @@ function loop(ts){
   const order=[...players].sort((a,b)=>a.y-b.y);   // 뒤→앞 순서로 겹치게
   for(const p of order) drawPlayer(p);
   drawBallGlobal();
+  drawShooters();
   drawPops();
   drawShots();
   drawScoreboard();
@@ -1201,9 +1377,115 @@ function endGame(winner){
   $('winOverlay').classList.remove('hide');
 }
 
-$('startBtn').onclick = startGame;
+$('startBtn').onclick = ()=>openPick([state.P1,state.P2], startGame);
 $('againBtn').onclick = ()=>{ if(mode==='online'){ location.reload(); } else startGame(); };
 
+
+/* ============ 선수 로스터 & 아바타 ============ */
+const ROSTER=[
+  {id:'fire',  name:'김불꽃', tag:'스피드',   skin:'#e8b58a', hair:'spiky', hairC:'#1a1a22', acc:'band'},
+  {id:'tall',  name:'이장신', tag:'골밑 지배', skin:'#d99b6a', hair:'buzz',  hairC:'#241a12', acc:'beard'},
+  {id:'three', name:'박삼점', tag:'3점 슈터',  skin:'#f0c49a', hair:'short', hairC:'#2a2118', acc:'glass'},
+  {id:'drive', name:'최돌파', tag:'돌파왕',    skin:'#c98a58', hair:'curly', hairC:'#141414', acc:null},
+  {id:'wall',  name:'강철벽', tag:'수비 벽',   skin:'#e2ab7f', hair:'two',   hairC:'#332211', acc:null},
+  {id:'buzz',  name:'한버저', tag:'버저비터',  skin:'#eec091', hair:'long',  hairC:'#3d2c1a', acc:'band2'},
+];
+async function loadNames(){
+  try{
+    const r=await window.storage.get('roster-names');
+    if(r&&r.value){
+      const m=JSON.parse(r.value);
+      ROSTER.forEach(c=>{ if(m[c.id]) c.name=m[c.id]; });
+    }
+  }catch(e){/* 저장 미지원/기록 없음 */}
+}
+function saveNames(){
+  const m={}; ROSTER.forEach(c=>m[c.id]=c.name);
+  try{ window.storage.set('roster-names', JSON.stringify(m)); }catch(e){}
+}
+function renameChar(c){
+  const n=prompt('선수 이름 입력 (최대 6자)', c.name);
+  if(n && n.trim()){ c.name=n.trim().slice(0,6); saveNames(); }
+}
+function avatarSVG(c, jersey){
+  jersey = jersey || '#d13b32';
+  let hair='';
+  const hc=c.hairC;
+  if(c.hair==='spiky') hair=`<path d="M28 34 L34 18 L40 30 L48 14 L56 30 L64 18 L72 34 Z" fill="${hc}"/>`;
+  else if(c.hair==='buzz') hair=`<path d="M30 34 Q50 14 70 34 L70 38 L30 38 Z" fill="${hc}" opacity=".85"/>`;
+  else if(c.hair==='short') hair=`<path d="M28 36 Q50 12 72 36 L72 40 Q50 30 28 40 Z" fill="${hc}"/>`;
+  else if(c.hair==='curly') hair=`<circle cx="36" cy="26" r="9" fill="${hc}"/><circle cx="50" cy="20" r="10" fill="${hc}"/><circle cx="64" cy="26" r="9" fill="${hc}"/><circle cx="30" cy="36" r="7" fill="${hc}"/><circle cx="70" cy="36" r="7" fill="${hc}"/>`;
+  else if(c.hair==='two') hair=`<path d="M28 38 Q34 14 50 16 Q66 14 72 38 L72 42 Q60 26 50 26 Q40 26 28 42 Z" fill="${hc}"/>`;
+  else if(c.hair==='long') hair=`<path d="M27 34 Q50 10 73 34 L74 52 Q70 44 66 42 L66 34 Q50 24 34 34 L34 42 Q30 44 26 52 Z" fill="${hc}"/>`;
+  let acc='';
+  if(c.acc==='band') acc=`<rect x="29" y="30" width="42" height="7" rx="3" fill="#ff5566"/>`;
+  if(c.acc==='band2') acc=`<rect x="29" y="30" width="42" height="7" rx="3" fill="#4d9dff"/>`;
+  if(c.acc==='glass') acc=`<circle cx="41" cy="46" r="7" fill="none" stroke="#222" stroke-width="2.4"/><circle cx="59" cy="46" r="7" fill="none" stroke="#222" stroke-width="2.4"/><line x1="48" y1="46" x2="52" y2="46" stroke="#222" stroke-width="2.4"/>`;
+  if(c.acc==='beard') acc=`<path d="M36 58 Q50 74 64 58 Q60 70 50 71 Q40 70 36 58 Z" fill="${hc}" opacity=".9"/>`;
+  return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="114" rx="26" ry="5" fill="rgba(0,0,0,.25)"/>
+    <path d="M22 118 Q22 88 50 88 Q78 88 78 118 Z" fill="${jersey}"/>
+    <rect x="46" y="78" width="8" height="14" fill="${c.skin}"/>
+    <circle cx="50" cy="48" r="24" fill="${c.skin}"/>
+    ${hair}${acc}
+    <circle cx="42" cy="47" r="2.6" fill="#222"/>
+    <circle cx="58" cy="47" r="2.6" fill="#222"/>
+    <path d="M42 58 Q50 65 58 58" stroke="#8a4a2a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+let pickQueue=[], pickDone=null;
+function openPick(players, done){
+  pickQueue=players.slice(); pickDone=done;
+  $('startOverlay').classList.add('hide');
+  renderPick();
+}
+function renderPick(){
+  const P=pickQueue[0];
+  const isP1=(P===state.P1);
+  const t=$('pickTitle');
+  t.textContent=(isP1?'PLAYER 1':'PLAYER 2')+' 선수 선택';
+  t.className='pick-title '+(isP1?'red':'blue');
+  const box=$('rosterBox'); box.innerHTML='';
+  const taken=(state.P1.char&&state.P1.char.id);
+  ROSTER.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='pcard';
+    if(taken===c.id && !isP1){ d.style.opacity=.35; }
+    d.innerHTML=avatarSVG(c, isP1?'#d13b32':'#2b6dd6')+`<div class="pname">${c.name}</div><div class="ptag">${c.tag}</div>`;
+    const ed=document.createElement('div');
+    ed.className='pedit'; ed.textContent='✏️'; ed.title='이름 바꾸기';
+    ed.onclick=(e)=>{ e.stopPropagation(); renameChar(c); renderPick(); };
+    d.appendChild(ed);
+    d.onclick=()=>{
+      if(taken===c.id && !isP1) return; // 같은 선수 중복 방지
+      P.char=c;
+      pickQueue.shift();
+      if(pickQueue.length) renderPick();
+      else { $('pickOverlay').classList.add('hide'); showMini(); pickDone&&pickDone(); }
+    };
+    box.appendChild(d);
+  });
+  $('pickOverlay').classList.remove('hide');
+}
+function showMini(){
+  [['panelP1',state.P1,'#d13b32'],['panelP2',state.P2,'#2b6dd6']].forEach(([pid,P,col])=>{
+    const who=document.querySelector('#'+pid+' .who');
+    let m=who.querySelector('.mini-face');
+    if(!m){ m=document.createElement('span'); m.className='mini-face'; who.appendChild(m); }
+    m.innerHTML=P.char?avatarSVG(P.char,col):'';
+  });
+}
+let goalTimer=null;
+function showGoalCard(c, pts, team){
+  if(!c) return;
+  const card=$('goalCard');
+  $('gFace').innerHTML=avatarSVG(c, team==='red'?'#d13b32':'#2b6dd6');
+  $('gName').textContent=c.name;
+  $('gPts').textContent='+'+pts;
+  card.classList.remove('show');
+  void card.offsetWidth; // 애니메이션 재시작
+  card.classList.add('show');
+}
 
 /* ============ 온라인 대전 ============ */
 let mode='local', myPlayer=0, roomCode='', waitPoll=null, syncPoll=null;
@@ -1239,6 +1521,7 @@ $('joinGo').onclick=async()=>{
 };
 function startOnline(){
   mode='online';
+  if(!state.P1.char){ openPick([state.P1], startOnline); return; }
   startGame();
   // 위 패널(P2 객체)은 상대 점수 표시 전용
   const opp=state.P2;
@@ -1289,6 +1572,7 @@ window.addEventListener('resize', fitHeight);
 if(window.visualViewport) window.visualViewport.addEventListener('resize', fitHeight);
 fitHeight();
 initPlayers();
+loadNames();
 looseBallNear(CT.cx, CT.midY);
 loadWords();
 requestAnimationFrame(loop);
