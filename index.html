@@ -186,6 +186,32 @@
     font-family:"Arial Black",Impact,sans-serif;font-size:72px;font-weight:900;color:var(--orange);
   }
 
+  /* ---- 📖 설명서 ---- */
+  #manualOverlay{justify-content:flex-start;text-align:left;}
+  .mn{max-width:560px;width:100%;}
+  .mn h2{
+    font-family:"Arial Black",Impact,sans-serif;font-size:18px;font-weight:900;
+    color:#ffd08a;margin:26px 0 8px;padding-left:10px;border-left:5px solid var(--orange);
+  }
+  .mn h2:first-child{margin-top:6px;}
+  .mn p{margin:6px 0;color:#cdd9f2;font-size:14px;line-height:1.7;}
+  .mn .mnstep{
+    background:#101a33;border:2px solid #26355c;border-radius:12px;
+    padding:10px 13px;margin:8px 0;font-size:14px;color:#cdd9f2;line-height:1.6;
+  }
+  .mn .mnstep .mtag{
+    display:inline-block;background:var(--orange);color:#160a00;
+    font-size:11px;font-weight:900;border-radius:999px;padding:1px 9px;
+    margin-right:7px;letter-spacing:1px;
+  }
+  .mn b{color:#ffd08a;}
+  .mn table{width:100%;border-collapse:collapse;margin:8px 0;background:#101a33;border-radius:10px;overflow:hidden;}
+  .mn th,.mn td{padding:7px 10px;font-size:13px;border-bottom:1px solid #26355c;text-align:left;}
+  .mn th{background:#141d3a;color:#ffd08a;font-weight:900;}
+  .mn tr:last-child td{border-bottom:none;}
+  .mn .mtip{background:rgba(55,227,155,.08);border:2px solid rgba(55,227,155,.4);border-radius:12px;padding:9px 13px;margin:8px 0;font-size:13px;color:#cdd9f2;}
+  .mn .mtip b{color:#37e39b;}
+
   /* ---- 골 세리머니 ---- */
   #celebrate{
     position:fixed;inset:0;z-index:14;pointer-events:none;
@@ -410,6 +436,7 @@
     <button class="btn2" id="coopMakeBtn">👥 협동 방</button>
     <button class="btn2" id="coopJoinBtn">👥 협동 참가</button>
     <button class="btn2" id="rankBtn">🏆 랭킹</button>
+    <button class="btn2" id="manualBtn">📖 설명서</button>
     <button class="btn2" id="manageBtn">📝 단어 관리</button>
   </div>
   <div id="joinBox" class="hide" style="display:flex;gap:6px;">
@@ -461,6 +488,58 @@
   <div style="color:#8aa0c8;font-size:12.5px;">온라인 대결(방 만들기) 결과가 자동 기록됩니다</div>
   <div id="rankList"></div>
   <button class="btn2" id="rankClose">닫기</button>
+</div>
+
+<!-- 📖 설명서 overlay -->
+<div class="overlay hide" id="manualOverlay">
+  <div class="mn">
+    <div style="text-align:center;margin-bottom:4px;">
+      <div class="title" style="font-size:34px;">📖 설명서</div>
+    </div>
+
+    <h2>1. 시작하기</h2>
+    <p>난이도를 고르고 시작을 누르면 <b>선수 10명</b> 중에서 Player 1, 2가 차례로 골라요. 같은 선수를 둘 다 골라도 OK!</p>
+    <table>
+      <tr><th>난이도</th><th>문제 방식</th></tr>
+      <tr><td>1단계</td><td>영어 단어 보고 뜻 고르기</td></tr>
+      <tr><td>2단계</td><td>뜻 보고 철자 1개 채우기</td></tr>
+      <tr><td>3단계</td><td>뜻 보고 철자 2개 채우기</td></tr>
+    </table>
+    <p>선수 카드의 ✏️로 이름을 바꾸고, 📷로 내 얼굴 사진을 넣을 수 있어요.</p>
+
+    <h2>2. 기본 규칙 — 공격권을 잡아라!</h2>
+    <p>슛을 쏘려면 <b>연속 2문제를 상대보다 먼저</b> 맞혀야 해요.</p>
+    <div class="mnstep"><span class="mtag">점프볼</span>같은 문제가 양쪽에! <b>먼저 맞힌 쪽이 공격권</b> 🏀</div>
+    <div class="mnstep"><span class="mtag">공격/수비</span>패널의 <b>🏀 공격 / 🛡️ 수비</b> 표시와 주황 테두리로 확인</div>
+    <div class="mnstep"><span class="mtag">스틸</span>수비가 먼저 맞히면 <b>🖐️ 스틸!</b> 득점 없이 공격권 탈취</div>
+    <div class="mnstep"><span class="mtag">슛!</span>공격권 잡고 맞히면 <b>골인·득점</b> 🎉 득점하면 공은 상대에게</div>
+
+    <h2>3. 점수</h2>
+    <table>
+      <tr><th>상황</th><th>점수</th></tr>
+      <tr><td>일반 슛</td><td>+2점</td></tr>
+      <tr><td>3연속 정답 후 슛</td><td>+3점</td></tr>
+      <tr><td>⭐ 최다빈출 찬스</td><td>+3점</td></tr>
+    </table>
+
+    <h2>4. 특수 기술</h2>
+    <div class="mnstep">🛡️ <b>블로킹</b> — 상대 블록 버튼을 누르면 3초 챌린지! 그 안에 상대가 맞히면 실패 → 상대 자유투 +1점</div>
+    <div class="mnstep">⏱️ <b>작전타임</b> — 팀당 3회, 10초간 정지. 상대가 불붙었을 때 흐름 끊기!</div>
+
+    <h2>5. 온라인 · 협동</h2>
+    <div class="mnstep"><span class="mtag">온라인 대전</span>🌐 방 만들기 → 방 코드를 상대에게 → 상대는 🔑 방 참가에 코드 입력 (폰 2대)</div>
+    <div class="mnstep"><span class="mtag">협동 패스</span>👥 협동 방 → 코드 공유 → 2~5명이 한 팀! 내 차례에 철자 맞히고 패스, 자신 있으면 🙋 손들기</div>
+    <p>온라인 대전 승패는 🏆 랭킹에 자동 기록돼요.</p>
+
+    <h2>6. 문제가 생기면</h2>
+    <div class="mtip"><b>예전 화면이 보여요</b> → 당겨서 새로고침 또는 브라우저 재시작</div>
+    <div class="mtip"><b>소리가 안 나요</b> → 무음 모드 확인, 화면 터치 후부터 소리가 나요</div>
+    <div class="mtip"><b>방 만들기가 없어요</b> → vercel 주소 말고 <b>onrender.com</b> 주소로 접속</div>
+
+    <div style="text-align:center;margin-top:22px;">
+      <button class="btn" id="manualClose">닫기</button>
+    </div>
+  </div>
 </div>
 
 <div class="overlay hide" id="coopOverlay">
@@ -2389,6 +2468,8 @@ async function openRank(){
 }
 $('rankBtn').onclick=openRank;
 $('rankClose').onclick=()=>$('rankOverlay').classList.add('hide');
+$('manualBtn').onclick=()=>$('manualOverlay').classList.remove('hide');
+$('manualClose').onclick=()=>$('manualOverlay').classList.add('hide');
 
 /* ============ 부팅 ============ */
 function fitHeight(){
