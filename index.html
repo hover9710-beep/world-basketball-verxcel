@@ -512,6 +512,7 @@
     <div class="mnstep"><span class="mtag">점프볼</span>같은 문제가 양쪽에! <b>먼저 맞힌 쪽이 공격권</b> 🏀</div>
     <div class="mnstep"><span class="mtag">공격/수비</span>패널의 <b>🏀 공격 / 🛡️ 수비</b> 표시와 주황 테두리로 확인</div>
     <div class="mnstep"><span class="mtag">스틸</span>수비가 먼저 맞히면 <b>🖐️ 스틸!</b> 득점 없이 공격권 탈취</div>
+    <div class="mnstep"><span class="mtag">턴오버</span>공격팀이 틀리면 <b>💥 턴오버!</b> 상대가 공격권 + <b>2연속 슛 찬스</b>(첫 골 후에도 공격권 유지)</div>
     <div class="mnstep"><span class="mtag">슛!</span>공격권 잡고 맞히면 <b>골인·득점</b> 🎉 득점하면 공은 상대에게</div>
 
     <h2>3. 점수</h2>
@@ -1172,7 +1173,10 @@ function newQuestion(P){
 function renderStreak(P){
   const s = P.streak;
   let pre='';
-  if(mode!=='online' && possession){ pre = (possession===P)?'🏀 공격 · ':'🛡️ 수비 · '; }
+  if(mode!=='online' && possession){
+    if(possession===P) pre = (bonusShots>0 ? '🏀 공격×'+bonusShots+' · ' : '🏀 공격 · ');
+    else pre = '🛡️ 수비 · ';
+  }
   if(s>=2){ P.el.streak.textContent = pre+'🔥 '+s+'연속 · 다음 3점!'; }
   else if(s===1){ P.el.streak.textContent = pre+'🔥 1연속'; }
   else { P.el.streak.textContent = pre? pre.slice(0,-3) : ''; }
@@ -1208,6 +1212,7 @@ function answer(P,btn,txt){
     // 🏀 공격권 시스템: 수비 중에 먼저 맞히면 스틸 (득점 없음, 공격권 탈취)
     if(mode!=='online' && possession!==P){
       possession=P;
+      bonusShots=0;
       P.streak++;
       renderPossession();
       showFlash(panelPos,'🏀 스틸! 공격권 획득',team);
@@ -1226,8 +1231,12 @@ function answer(P,btn,txt){
     popScore(P.el.score);
     showFlash(panelPos, P.star3?'⭐ 3점슛!':(three?'3-POINTER!':'SWISH! +'+pts), team);
     shoot(side, team, three, P, pts);   // 슛은 시각 효과 (골인 순간 함성+선수 카드)
-    // 득점 후 공격권은 상대에게 (인바운드)
-    if(mode!=='online'){ possession=(P===state.P1)?state.P2:state.P1; renderPossession(); }
+    // 득점 후: 보너스 찬스가 남았으면 공격권 유지, 아니면 상대에게 (인바운드)
+    if(mode!=='online'){
+      if(bonusShots>0) bonusShots--;
+      if(bonusShots>0){ renderPossession(); }
+      else { possession=(P===state.P1)?state.P2:state.P1; renderPossession(); }
+    }
     if(typeof reportScore==='function') reportScore();
     if(P.score>=TARGET){
       if(mode==='online'){ setTimeout(syncState, 500); return; }
@@ -1241,7 +1250,15 @@ function answer(P,btn,txt){
     P.streak = 0;
     playMiss();
     airball(side, team);
-    showFlash(panelPos,'MISS…',team);
+    // 💥 공격팀이 틀리면 턴오버: 상대에게 공격권 + 2연속 슛 찬스
+    if(mode!=='online' && possession===P){
+      const opp=(P===state.P1)?state.P2:state.P1;
+      possession=opp; bonusShots=2;
+      renderPossession();
+      showFlash(panelOf(opp),'💥 턴오버! 공격권 + 2연속 슛 찬스', teamOf(opp));
+    } else {
+      showFlash(panelPos,'MISS…',team);
+    }
     setTimeout(()=>newQuestion(P), 900);
   }
 }
@@ -1850,7 +1867,7 @@ function startGame(){
   resize(); initPlayers();
   TO.red=3; TO.blue=3; updateTO();
   paused=false; jumpBall=false;
-  possession=null; renderPossession();
+  possession=null; bonusShots=0; renderPossession();
   state.P1.blockWin=false; state.P2.blockWin=false;
   if(mode!=='online'){
     startJumpBall();
@@ -2119,6 +2136,7 @@ const TO={red:3, blue:3};        // 남은 작전타임
 let paused=false, toTimer=null;
 let jumpBall=false;              // 점프볼 진행 중
 let possession=null;             // 🏀 공격권 보유자 (로컬 모드)
+let bonusShots=0;                // 💥 턴오버 보너스: 공격권 보유자의 남은 연속 슛 찬스
 function renderPossession(){
   const on = mode!=='online';
   [state.P1,state.P2].forEach(P=>{
@@ -2216,6 +2234,7 @@ function startJumpBall(){
 function winJumpBall(P){
   jumpBall=false;
   possession=P;
+  bonusShots=0;
   const loser=(P===state.P1)?state.P2:state.P1;
   showFlash(panelOf(P),'🏀 공격권 획득!', teamOf(P));
   playApplause();
